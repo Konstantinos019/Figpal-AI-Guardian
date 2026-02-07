@@ -4,7 +4,7 @@
   "version": "1.0",
   "description": "A friendly FigPal that follows your cursor on Figma.",
   "permissions": ["activeTab"],
-  "host_permissions": ["*://*.figma.com/*"],
+  "host_permissions": ["*://*.figma.com/*", "http://localhost:3000/*"],
   "content_scripts": [
     {
       "matches": ["*://*.figma.com/*"],

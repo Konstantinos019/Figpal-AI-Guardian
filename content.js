@@ -113,24 +113,86 @@ function addMessage(text, sender, isThinking = false) {
   return { row, msgDiv };
 }
 
-function handleUserMessage(text, specificResponse = null) {
+// Helper to call the Guardian API
+async function queryGuardian(userText) {
+  try {
+    const response = await fetch('http://localhost:3000/api/chat', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        messages: [{ role: 'user', content: userText }]
+      })
+    });
+
+    if (!response.ok) {
+      throw new Error(`Guardian Connection Failed: ${response.status}`);
+    }
+
+    // For now, handle simple text response.
+    // Ideally we should handle streaming, but let's start with simple text.
+    // The previous analysis showed it returns a standard AI SDK response.
+    // We might need to handle the stream or text based on how the API is set up.
+    // Let's assume text for MVP simplicity or read the stream.
+
+    // Quick stream reader to get full text
+    const reader = response.body.getReader();
+    const decoder = new TextDecoder();
+    let result = '';
+
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      result += decoder.decode(value, { stream: true });
+    }
+
+    // The "stream" might be Vercel AI SDK format (complex parts).
+    // Let's just try to parse the text or return it raw for now.
+    // If it's Vercel AI SDK, it might be sending data parts.
+    // Simplified regex to just extract text content from standard stream format if needed.
+    // But for a hackathon MVP, let's just dump the text and refine.
+    return result;
+
+  } catch (error) {
+    console.error('Guardian Error:', error);
+    return "I'm having trouble connecting to my brain (Guardian). Is the local server running on port 3000?";
+  }
+}
+
+async function handleUserMessage(text, specificResponse = null) {
   addMessage(text, 'user');
 
   // Show thinking state with Avatar
   const { msgDiv: thinkingBubble } = addMessage('Thinking...', 'bot', true);
 
-  // Fake delay then reply
-  setTimeout(() => {
-    thinkingBubble.classList.remove('thinking');
-    thinkingBubble.textContent = specificResponse || "Let me know, and I’ll help you right away!";
+  // If specific response is provided (e.g. from quick actions that are hardcoded for now), use it.
+  // OR we can send those to the AI too. Let's send everything to AI for "intelligence".
+  // But if we want to keep the "canned" ones instant, we can check specificResponse.
 
-    // Auto-scroll again in case text expansion pushes it down
-    const contentArea = chatBubble.querySelector('.figpal-chat-content');
-    contentArea.scrollTop = contentArea.scrollHeight;
+  let replyText = specificResponse;
 
-    // If it's the "Compare" flow, we might want to check the selection (future enhancement)
-    // For now, the user specifically asked for this text.
-  }, 1000);
+  if (!replyText) {
+    // Fetch from AI
+    // We can update the UI while it thinks
+    try {
+      const rawResponse = await queryGuardian(text);
+
+      // Clean up the Vercel AI stream format if necessary. 
+      // Vercel AI stream is usually: 0:"text"
+      // Let's simple-clean it:
+      const cleanText = rawResponse.replace(/^\d+:"/gm, '').replace(/"$/gm, '').replace(/\\n/g, '\n');
+      replyText = cleanText || rawResponse;
+
+    } catch (e) {
+      replyText = "Error communicating with Guardian.";
+    }
+  }
+
+  thinkingBubble.classList.remove('thinking');
+  thinkingBubble.textContent = replyText;
+
+  // Auto-scroll again in case text expansion pushes it down
+  const contentArea = chatBubble.querySelector('.figpal-chat-content');
+  contentArea.scrollTop = contentArea.scrollHeight;
 }
 
 chatInput.addEventListener('keydown', (e) => {
