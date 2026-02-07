@@ -1,21 +1,37 @@
 {
   "manifest_version": 3,
-  "name": "FigPal Cursor Follower",
+  "name": "DS Guardian",
   "version": "1.0",
-  "description": "A friendly FigPal that follows your cursor on Figma.",
-  "permissions": ["activeTab"],
-  "host_permissions": ["*://*.figma.com/*"],
+  "description": "A friendly DS Guardian that follows your cursor on Figma.",
+  "permissions": [
+    "activeTab"
+  ],
+  "host_permissions": [
+    "*://*.figma.com/*"
+  ],
   "content_scripts": [
     {
-      "matches": ["*://*.figma.com/*"],
-      "js": ["content.js"],
-      "css": ["styles.css"]
+      "matches": [
+        "*://*.figma.com/*"
+      ],
+      "js": [
+        "content.js"
+      ],
+      "css": [
+        "styles.css"
+      ]
     }
   ],
   "web_accessible_resources": [
     {
-      "resources": ["assets/selection.svg"],
-      "matches": ["*://*.figma.com/*"]
+      "resources": [
+        "assets/selection.svg",
+        "assets/thinking.svg",
+        "assets/home.svg"
+      ],
+      "matches": [
+        "<all_urls>"
+      ]
     }
   ]
 }

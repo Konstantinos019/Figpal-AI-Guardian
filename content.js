@@ -1,300 +1,313 @@
-// Create the container `div`
-const container = document.createElement('div');
-container.id = 'figpal-container';
-// Enforce style here to avoid CSS caching issues (28px, 28px)
-container.style.transform = 'translate(28px, 28px)';
+(function () {
+  let isInjected = false;
 
-// Create the follower element (character)
-const follower = document.createElement('img');
-follower.id = 'figpal-follower';
-follower.src = chrome.runtime.getURL('assets/selection.svg');
-follower.onerror = () => console.error('FigPal Error: Could not load image from', follower.src);
-follower.onload = () => console.log('FigPal Image loaded successfully');
+  function initFigPal() {
+    // Continuous polling to handle SPA navigation and wait for specific Figma UI
+    setInterval(() => {
+      // 1. Check URL - matches /design/, /file/, or /proto/
+      const isFigmaFile = /figma\.com\/(design|file|proto)\//.test(window.location.href);
 
-// Create the chat bubble
-const chatBubble = document.createElement('div');
-chatBubble.id = 'figpal-chat-bubble';
-chatBubble.innerHTML = `
-  <div class="figpal-chat-header">
-    <span>FigPal name</span>
-    <button class="figpal-close-btn" aria-label="Close chat">×</button>
-  </div>
-  <div class="figpal-chat-content">
-    <div class="figpal-message-row bot">
-       <!-- Avatar injected via JS usually, but for initial HTML we add it manually or via JS init. 
-            Let's add it here for consistency if we can't use runtime URL easily in template string without variable.
-            Actually, we can use the variable if we have it. -->
-       <img src="${chrome.runtime.getURL('assets/selection.svg')}" class="figpal-avatar" />
-       <div class="figpal-message bot">Hello! How can I help you design today?</div>
-    </div>
-    <div class="figpal-quick-actions">
-      <div class="figpal-quick-action-btn">Compare component against codebase</div>
-      <div class="figpal-quick-action-btn">Check component for design token usage</div>
-      <div class="figpal-quick-action-btn">Check design for tokens</div>
-      <div class="figpal-quick-action-btn">Workflows</div>
-    </div>
-  </div>
-  <div class="figpal-chat-input-area">
-    <input type="text" placeholder="Ask me anything..." />
-  </div>
-`;
+      if (!isFigmaFile) {
+        return;
+      }
 
-// Assemble
-container.appendChild(follower);
-container.appendChild(chatBubble);
-document.body.appendChild(container);
+      // 2. Safeguard: Check if already injected
+      if (document.getElementById('figpal-container')) {
+        isInjected = true;
+        return;
+      }
 
-// Quick Action Logic
-const quickActionsContainer = chatBubble.querySelector('.figpal-quick-actions');
-const quickActionBtns = chatBubble.querySelectorAll('.figpal-quick-action-btn');
-const closeBtn = chatBubble.querySelector('.figpal-close-btn');
+      // 3. Robust Element Detection
+      // We look for the main toolbelt or the objects panel which are the heart of the editor
+      const targetElement = document.querySelector('[data-testid="design-toolbelt-wrapper"]') ||
+        document.querySelector('[data-testid="objects-panel"]');
 
-// Close Button Logic
-closeBtn.addEventListener('click', (e) => {
-  e.stopPropagation(); // Prevent bubbling logic (like closing then opening if attached to container click)
-  container.classList.remove('chat-visible');
-});
+      if (targetElement && !isInjected) {
+        console.log('DS Guardian: Editor detected via', targetElement.getAttribute('data-testid'));
+        inject();
+      }
+    }, 1000);
 
-// Responses map
-const botResponses = {
-  "Compare component against codebase": "Nice! please select your component first!",
-  "Check component for design token usage": "I'm ready. Select the layer or component you'd like me to scan for design token compliance.",
-  "Check design for tokens": "I will analyze the current page for hardcoded values. Shall I proceed with the scan?",
-  "Workflows": "Which workflow would you like to start? I can help with Handoff, Audits, or Style Sync."
-};
+    function inject() {
+      if (document.getElementById('figpal-container')) return;
+      console.log('DS Guardian: Injecting...');
+      isInjected = true;
 
-quickActionBtns.forEach(btn => {
-  btn.addEventListener('click', () => {
-    const text = btn.innerText;
+      // Create the container `div`
+      const container = document.createElement('div');
+      container.id = 'figpal-container';
 
-    // Hide buttons after selection to keep chat clean
-    quickActionsContainer.style.display = 'none';
+      const defaultSprite = chrome.runtime.getURL('assets/selection.svg');
+      const thinkingSprite = chrome.runtime.getURL('assets/thinking.svg');
+      const homeSprite = chrome.runtime.getURL('assets/home.svg');
 
-    // Handle the flow
-    handleUserMessage(text, botResponses[text]);
-  });
-});
+      // Create the home element (signpost)
+      const home = document.createElement('img');
+      home.id = 'figpal-home';
+      home.src = homeSprite;
 
-// Chat Logic
-const chatContent = chatBubble.querySelector('.figpal-chat-content');
-const chatInput = chatBubble.querySelector('input');
-// Helper to add messages
-function addMessage(text, sender, isThinking = false) {
-  const contentArea = chatBubble.querySelector('.figpal-chat-content');
+      // Create the follower element (character)
+      const follower = document.createElement('img');
+      follower.id = 'figpal-follower';
+      follower.src = defaultSprite;
+      follower.onerror = () => console.error('DS Guardian Error: Could not load image from', follower.src);
 
-  // Create Row Container
-  const row = document.createElement('div');
-  row.classList.add('figpal-message-row', sender);
+      // Create the chat bubble
+      const chatBubble = document.createElement('div');
+      chatBubble.id = 'figpal-chat-bubble';
+      chatBubble.innerHTML = `
+        <div class="figpal-chat-header">
+          <span>DS Guardian</span>
+          <button class="figpal-close-btn" aria-label="Close chat">×</button>
+        </div>
+        <div class="figpal-chat-content">
+          <div class="figpal-message-row bot">
+             <img src="${defaultSprite}" class="figpal-avatar" />
+             <div class="figpal-message bot">Hello! How can I help you design today?</div>
+          </div>
+          <div class="figpal-quick-actions">
+            <div class="figpal-quick-action-btn">Compare component against codebase</div>
+            <div class="figpal-quick-action-btn">Check component for design token usage</div>
+            <div class="figpal-quick-action-btn">Check design for tokens</div>
+          </div>
+        </div>
+        <div class="figpal-chat-input-area">
+          <input type="text" placeholder="Ask me anything..." />
+        </div>
+        <div class="figpal-resizer top"></div>
+        <div class="figpal-resizer top-left"></div>
+        <div class="figpal-resizer top-right"></div>
+        <div class="figpal-resizer left"></div>
+        <div class="figpal-resizer right"></div>
+        <div class="figpal-resizer bottom-left"></div>
+        <div class="figpal-resizer bottom-right"></div>
+      `;
 
-  // If Bot, add Avatar
-  if (sender === 'bot') {
-    // Hide previous avatars
-    const existingAvatars = contentArea.querySelectorAll('.figpal-avatar');
-    existingAvatars.forEach(avatar => {
-      avatar.remove();
-    });
+      // Assemble
+      document.body.appendChild(container);
+      document.body.appendChild(home); // Signpost follows container for CSS sibling selector
 
-    const avatar = document.createElement('img');
-    avatar.src = chrome.runtime.getURL('assets/selection.svg'); // Reuse the FigPal SVG
-    avatar.classList.add('figpal-avatar');
-    row.appendChild(avatar);
-  }
+      container.appendChild(follower);
+      container.appendChild(chatBubble);
 
-  // Create Message Bubble/Text
-  const msgDiv = document.createElement('div');
-  msgDiv.classList.add('figpal-message', sender);
-  if (isThinking) msgDiv.classList.add('thinking');
-  msgDiv.textContent = text;
+      // Quick Action Logic
+      const quickActionsContainer = chatBubble.querySelector('.figpal-quick-actions');
+      const quickActionBtns = chatBubble.querySelectorAll('.figpal-quick-action-btn');
+      const closeBtn = chatBubble.querySelector('.figpal-close-btn');
 
-  row.appendChild(msgDiv);
-  contentArea.appendChild(row);
-  contentArea.scrollTop = contentArea.scrollHeight; // Auto-scroll
+      closeBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        container.classList.remove('chat-visible');
+      });
 
-  return { row, msgDiv };
-}
+      const botResponses = {
+        "Compare component against codebase": "Nice! please select your component first!",
+        "Check component for design token usage": "I'm ready. Select the layer or component you'd like me to scan for design token compliance.",
+        "Check design for tokens": "I will analyze the current page for hardcoded values. Shall I proceed with the scan?"
+      };
 
-function handleUserMessage(text, specificResponse = null) {
-  addMessage(text, 'user');
+      quickActionBtns.forEach(btn => {
+        btn.addEventListener('click', () => {
+          const text = btn.innerText;
+          quickActionsContainer.style.display = 'none';
+          handleUserMessage(text, botResponses[text]);
+        });
+      });
 
-  // Show thinking state with Avatar
-  const { msgDiv: thinkingBubble } = addMessage('Thinking...', 'bot', true);
+      const chatInput = chatBubble.querySelector('input');
 
-  // Fake delay then reply
-  setTimeout(() => {
-    thinkingBubble.classList.remove('thinking');
-    thinkingBubble.textContent = specificResponse || "Let me know, and I’ll help you right away!";
+      function addMessage(text, sender, isThinking = false) {
+        const contentArea = chatBubble.querySelector('.figpal-chat-content');
+        const row = document.createElement('div');
+        row.classList.add('figpal-message-row', sender);
 
-    // Auto-scroll again in case text expansion pushes it down
-    const contentArea = chatBubble.querySelector('.figpal-chat-content');
-    contentArea.scrollTop = contentArea.scrollHeight;
+        if (sender === 'bot') {
+          const avatar = document.createElement('img');
+          avatar.src = defaultSprite;
+          avatar.classList.add('figpal-avatar');
+          row.appendChild(avatar);
+        }
 
-    // If it's the "Compare" flow, we might want to check the selection (future enhancement)
-    // For now, the user specifically asked for this text.
-  }, 1000);
-}
+        const msgDiv = document.createElement('div');
+        msgDiv.classList.add('figpal-message', sender);
+        if (isThinking) msgDiv.classList.add('thinking');
+        msgDiv.textContent = text;
 
-chatInput.addEventListener('keydown', (e) => {
-  if (e.key === 'Enter' && chatInput.value.trim() !== '') {
-    const userText = chatInput.value.trim();
-    chatInput.value = '';
+        row.appendChild(msgDiv);
+        contentArea.appendChild(row);
+        contentArea.scrollTop = contentArea.scrollHeight;
+        return { row, msgDiv, avatar: row.querySelector('.figpal-avatar') };
+      }
 
-    // Standard flow (generic reply for typed messages)
-    handleUserMessage(userText);
-  }
-});
+      function handleUserMessage(text, specificResponse = null) {
+        addMessage(text, 'user');
+        const { msgDiv: thinkingBubble, avatar: chatAvatar } = addMessage('Thinking...', 'bot', true);
+        follower.src = thinkingSprite;
+        follower.classList.add('thinking');
+        if (chatAvatar) chatAvatar.src = thinkingSprite;
 
-// Physics / Smooth Follow Logic
-let mouseX = 0;
-let mouseY = 0;
-let currentX = 0;
-let currentY = 0;
-const speed = 0.12; // "Gravity" / Smoothness factor
-let isFollowing = false; // Start in resting state
+        setTimeout(() => {
+          thinkingBubble.classList.remove('thinking');
+          thinkingBubble.textContent = specificResponse || "Let me know, and I’ll help you right away!";
+          follower.src = defaultSprite;
+          follower.classList.remove('thinking');
+          if (chatAvatar) chatAvatar.src = defaultSprite;
+          const contentArea = chatBubble.querySelector('.figpal-chat-content');
+          contentArea.scrollTop = contentArea.scrollHeight;
+        }, 1000);
+      }
 
-// Initialize resting state
-container.classList.add('resting');
+      chatInput.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter' && chatInput.value.trim() !== '') {
+          const userText = chatInput.value.trim();
+          chatInput.value = '';
+          handleUserMessage(userText);
+        }
+      });
 
-// Click to start following
-follower.addEventListener('click', (e) => {
-  if (!isFollowing) {
-    e.stopPropagation(); // Prevent ensuring click doesn't bubble if needed
-    isFollowing = true;
-    container.classList.remove('resting');
-    console.log('FigPal started following!');
-  }
-});
-
-// Track mouse position
-window.addEventListener('mousemove', (e) => {
-  mouseX = e.clientX;
-  mouseY = e.clientY;
-});
-
-// Animation Loop
-function animate() {
-  if (isFollowing) {
-    // Only animate if chat is NOT visible (detached mode)
-    if (!container.classList.contains('chat-visible')) {
-      // Linear Interpolation (Lerp)
-      currentX += (mouseX - currentX) * speed;
-      currentY += (mouseY - currentY) * speed;
-
-      container.style.left = currentX + 'px';
-      container.style.top = currentY + 'px';
-    }
-  } else {
-    // Resting Position Logic is handled via CSS class .resting
-    // But we need to sync JS coordinates so it doesn't jump when we start following
-    const rekt = container.getBoundingClientRect();
-    currentX = rekt.left;
-    currentY = rekt.top;
-  }
-
-  requestAnimationFrame(animate);
-}
-
-// Prevent scroll propagation from chat to Figma canvas
-chatBubble.addEventListener('wheel', (e) => {
-  e.stopPropagation();
-}, { passive: false });
-
-// Initialize position to avoid jump (not strictly needed with the else block above, but good practice)
-currentX = window.innerWidth / 2;
-currentY = window.innerHeight - 100; // Approx bottom
-animate();
-
-// Toggle chat visibility
-window.addEventListener('keydown', (e) => {
-  // Debug log
-  console.log('FigPal Key:', e.key, 'Alt:', e.altKey);
-
-  // Check for Option + d (Alt + d)
-  // This allows triggering even while typing in a text box
-  if (e.code === 'KeyD' && e.altKey && !e.shiftKey && !e.metaKey && !e.ctrlKey) {
-    e.preventDefault();
-    e.stopPropagation();
-
-    container.classList.toggle('chat-visible');
-
-    // Auto-focus input when opening
-    if (container.classList.contains('chat-visible')) {
-      const input = chatBubble.querySelector('input');
-      if (input) setTimeout(() => input.focus(), 50);
-    }
-  }
-
-  // Check for Escape key
-  if (e.code === 'Escape') {
-    // 1. If chat is visible, close it
-    if (container.classList.contains('chat-visible')) {
-      e.preventDefault();
-      e.stopPropagation();
-      container.classList.remove('chat-visible');
-      document.activeElement?.blur();
-      console.log('FigPal: Chat closed by Esc');
-    }
-    // 2. If chat is NOT visible but FigPal is following, return to resting
-    else if (isFollowing) {
-      e.preventDefault();
-      e.stopPropagation();
-      isFollowing = false;
+      let mouseX = 0, mouseY = 0, currentX = 0, currentY = 0;
+      const speed = 0.12;
+      let isFollowing = false;
       container.classList.add('resting');
-      console.log('FigPal: Returning to resting state by Esc');
+
+      follower.addEventListener('click', (e) => {
+        if (!isFollowing) {
+          e.stopPropagation();
+          isFollowing = true;
+          container.classList.remove('resting');
+        }
+      });
+
+      window.addEventListener('mousemove', (e) => {
+        mouseX = e.clientX;
+        mouseY = e.clientY;
+      });
+
+      function animate() {
+        const restingX = window.innerWidth / 2 + 180;
+        const restingY = window.innerHeight - 80;
+
+        if (isFollowing) {
+          if (!container.classList.contains('chat-visible')) {
+            // Apply the 28px offset directly in the target calculation 
+            // instead of using a CSS transform. This prevents "snapping" when returning home.
+            currentX += (mouseX + 28 - currentX) * speed;
+            currentY += (mouseY + 28 - currentY) * speed;
+            container.style.left = currentX + 'px';
+            container.style.top = currentY + 'px';
+            container.style.transform = ''; // Ensure no transform fights with us
+          }
+        } else if (!container.classList.contains('resting')) {
+          // Smoothly Lerp back home before switching to stable CSS
+          currentX += (restingX - currentX) * speed;
+          currentY += (restingY - currentY) * speed;
+          container.style.left = currentX + 'px';
+          container.style.top = currentY + 'px';
+          container.style.transform = '';
+
+          // Once close enough, hand off to stable CSS
+          if (Math.abs(currentX - restingX) < 1 && Math.abs(currentY - restingY) < 1) {
+            container.classList.add('resting');
+          }
+        } else {
+          // We are resting, sync current coordinates to resting spot just in case
+          currentX = restingX;
+          currentY = restingY;
+        }
+        requestAnimationFrame(animate);
+      }
+
+      chatBubble.addEventListener('wheel', (e) => e.stopPropagation(), { passive: false });
+      currentX = window.innerWidth / 2;
+      currentY = window.innerHeight - 100;
+      animate();
+
+      window.addEventListener('keydown', (e) => {
+        if (e.code === 'KeyD' && e.altKey && !e.shiftKey && !e.metaKey && !e.ctrlKey) {
+          e.preventDefault();
+          e.stopPropagation();
+          container.classList.toggle('chat-visible');
+          if (container.classList.contains('chat-visible')) {
+            const input = chatBubble.querySelector('input');
+            if (input) setTimeout(() => input.focus(), 50);
+          }
+        }
+        if (e.code === 'Escape') {
+          if (container.classList.contains('chat-visible')) {
+            e.preventDefault();
+            e.stopPropagation();
+            container.classList.remove('chat-visible');
+            document.activeElement?.blur();
+          } else if (isFollowing) {
+            e.preventDefault();
+            e.stopPropagation();
+            isFollowing = false;
+            // Note: .resting class is now added by animate() once it arrives home
+          }
+        }
+      }, { capture: true });
+
+      let isDraggingChat = false, isResizing = false, activeHandle = null;
+      let startWidth = 302, startHeight = 400, startMouseX = 0, startMouseY = 0;
+      let dragOffsetX = 0, dragOffsetY = 0;
+
+      const resizers = chatBubble.querySelectorAll('.figpal-resizer');
+      resizers.forEach(handle => {
+        handle.addEventListener('mousedown', (e) => {
+          e.preventDefault(); e.stopPropagation();
+          isResizing = true;
+          activeHandle = handle;
+          startMouseX = e.clientX; startMouseY = e.clientY;
+          const rect = chatBubble.getBoundingClientRect();
+          startWidth = rect.width; startHeight = rect.height;
+          container.classList.add('resizing');
+        });
+      });
+
+      follower.addEventListener('mousedown', (e) => {
+        if (container.classList.contains('chat-visible')) {
+          isDraggingChat = true;
+          container.classList.remove('resting');
+          dragOffsetX = e.clientX - currentX;
+          dragOffsetY = e.clientY - currentY;
+          e.preventDefault(); e.stopPropagation();
+        }
+      });
+
+      window.addEventListener('mousemove', (e) => {
+        if (isResizing) {
+          const deltaX = e.clientX - startMouseX;
+          const deltaY = e.clientY - startMouseY;
+          if (activeHandle.classList.contains('top') || activeHandle.classList.contains('top-left') || activeHandle.classList.contains('top-right')) {
+            chatBubble.style.height = Math.max(200, startHeight - deltaY) + 'px';
+          }
+          if (activeHandle.classList.contains('left') || activeHandle.classList.contains('top-left') || activeHandle.classList.contains('bottom-left')) {
+            chatBubble.style.width = Math.max(280, startWidth - deltaX) + 'px';
+          } else if (activeHandle.classList.contains('right') || activeHandle.classList.contains('top-right') || activeHandle.classList.contains('bottom-right')) {
+            chatBubble.style.width = Math.max(280, startWidth + deltaX) + 'px';
+          }
+          return;
+        }
+        if (isDraggingChat) {
+          currentX = e.clientX - dragOffsetX;
+          currentY = e.clientY - dragOffsetY;
+          container.style.left = currentX + 'px';
+          container.style.top = currentY + 'px';
+        }
+      });
+
+      window.addEventListener('mouseup', () => {
+        isDraggingChat = false;
+        if (isResizing) {
+          isResizing = false;
+          activeHandle = null;
+          container.classList.remove('resizing');
+        }
+      });
+
+      console.log('DS Guardian: Loaded successfully!');
     }
   }
-}, { capture: true });
 
-// Dragging Logic
-let isDraggingChat = false;
-let dragOffsetX = 0;
-let dragOffsetY = 0;
-
-// Attach drag listener to FOLLOWER (Character) instead of specific handle
-follower.addEventListener('mousedown', (e) => {
-  // Only drag if the chat is visible. Otherwise it's just the "follow me" button.
-  if (container.classList.contains('chat-visible')) {
-    isDraggingChat = true;
-    container.classList.remove('resting'); // Ensure we can move it
-
-    const currentLeft = container.offsetLeft;
-    const currentTop = container.offsetTop;
-
-    dragOffsetX = e.clientX - currentLeft;
-    dragOffsetY = e.clientY - currentTop;
-
-    e.preventDefault();
-    e.stopPropagation();
-  }
-});
-
-window.addEventListener('mousemove', (e) => {
-  // Handle Chat Dragging
-  if (isDraggingChat) {
-    const x = e.clientX - dragOffsetX;
-    const y = e.clientY - dragOffsetY;
-
-    // Update container position
-    container.style.left = x + 'px';
-    container.style.top = y + 'px';
-
-    // Sync currentX/Y so other animations don't jump
-    currentX = x;
-    currentY = y;
-  }
-  // Handle Follower Tracking (existing logic)
-  else {
-    mouseX = e.clientX;
-    mouseY = e.clientY;
-  }
-});
-
-window.addEventListener('mouseup', () => {
-  if (isDraggingChat) {
-    isDraggingChat = false;
-  }
-});
-
-// Add mouse move listener - using animate() now
-// window.addEventListener('mousemove', updatePosition);
-
-console.log('FigPal Cursor Follower & Chat loaded!');
+  initFigPal();
+})();
