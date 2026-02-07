@@ -1,0 +1,151 @@
+/* Container handling positioning */
+#figpal-container {
+  position: fixed;
+  z-index: 99999;
+  pointer-events: none;
+  /* Let clicks pass through by default */
+  /* Align Right relative to cursor */
+  /* 40px X moves it right, 24px Y moves it down */
+  transform: translate(40px, 24px);
+  transition: top 0.05s ease-out, left 0.05s ease-out;
+  will-change: top, left;
+  /* Ensure container doesn't collapse */
+  width: 0;
+  height: 0;
+  overflow: visible;
+}
+
+/* Character Image */
+#figpal-follower {
+  width: 46px;
+  height: 50px;
+  /* No positioning needed here as it's static in the absolute container */
+  display: block;
+  transform: translate(-50%, -50%);
+  /* Center image in container */
+}
+
+/* Chat Bubble */
+#figpal-chat-bubble {
+  position: absolute;
+  bottom: 100%;
+  /* Above the character */
+  left: 50%;
+  transform: translateX(-50%) translateY(-10px) scale(0.9);
+  width: 280px;
+  background: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(12px);
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  box-shadow:
+    0 4px 6px -1px rgba(0, 0, 0, 0.1),
+    0 2px 4px -1px rgba(0, 0, 0, 0.06),
+    0 12px 24px -4px rgba(0, 0, 0, 0.1);
+  border-radius: 16px;
+  padding: 0;
+  opacity: 0;
+  visibility: hidden;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  pointer-events: none;
+  /* Inherits none, but we need auto when visible */
+  overflow: hidden;
+  font-family: "Inter", sans-serif;
+  color: #1e1e1e;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Visible State */
+#figpal-container.chat-visible #figpal-chat-bubble {
+  opacity: 1;
+  visibility: visible;
+  pointer-events: auto;
+  /* Enable interaction */
+  transform: translateX(-50%) translateY(-16px) scale(1);
+}
+
+/* Chat Header */
+.figpal-chat-header {
+  padding: 12px 16px;
+  font-weight: 600;
+  font-size: 13px;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.06);
+  background: rgba(250, 250, 250, 0.5);
+  color: #444;
+  flex-shrink: 0;
+}
+
+/* Chat Content Area */
+.figpal-chat-content {
+  padding: 16px;
+  font-size: 14px;
+  line-height: 1.5;
+  color: #333;
+  max-height: 200px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+/* Messages */
+.figpal-message {
+  padding: 8px 12px;
+  max-width: 85%;
+  word-wrap: break-word;
+  font-size: 13px;
+  margin-bottom: 4px;
+}
+
+/* Bot Messages - Just Text (No bubble) */
+.figpal-message.bot {
+  background: transparent;
+  color: #333;
+  /* Dark gray text */
+  padding-left: 0;
+  /* Align left */
+  font-weight: 500;
+  align-self: flex-start;
+}
+
+/* User Messages - Light Gray Bubble */
+.figpal-message.user {
+  background: #e3e3e3;
+  /* Darker gray for better contrast against white/pale backgrounds */
+  color: #1a1a1a;
+  align-self: flex-end;
+  border-radius: 12px;
+  border-bottom-right-radius: 4px;
+}
+
+/* Thinking State */
+.figpal-message.thinking {
+  background: transparent;
+  align-self: flex-start;
+  padding-left: 0;
+  color: #888;
+  font-style: italic;
+  font-size: 12px;
+}
+
+/* Input Area */
+.figpal-chat-input-area {
+  padding: 12px;
+  border-top: 1px solid rgba(0, 0, 0, 0.06);
+}
+
+.figpal-chat-input-area input {
+  width: 100%;
+  padding: 8px 12px;
+  border-radius: 8px;
+  border: 1px solid #e1e1e1;
+  outline: none;
+  font-size: 13px;
+  transition: border-color 0.2s;
+  box-sizing: border-box;
+}
+
+.figpal-chat-input-area input:focus {
+  border-color: #0d99ff;
+  /* Figma Blue */
+  box-shadow: 0 0 0 2px rgba(13, 153, 255, 0.1);
+}

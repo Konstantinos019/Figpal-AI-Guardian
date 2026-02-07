@@ -1,0 +1,256 @@
+/* Container handling positioning */
+#figpal-container {
+  position: fixed;
+  z-index: 99999;
+  pointer-events: none;
+  /* Let clicks pass through by default */
+  /* Align Right and Below (Double distance 28px, 28px) */
+  transform: translate(28px, 28px);
+  /* Removed CSS transition for top/left to avoid fighting with JS Lerp */
+  will-change: top, left;
+  /* Ensure container doesn't collapse */
+  width: 0;
+  height: 0;
+  overflow: visible;
+  color-scheme: light;
+  /* Force light mode for form controls */
+}
+
+/* Character Image - Positioned Top-Right of Bubble */
+#figpal-follower {
+  position: absolute;
+  width: 46px;
+  height: 50px;
+  display: block;
+  /* Removed top/left 140px garbage that was causing it to be "way away" */
+  transform: translate(-50%, -50%);
+  z-index: 20;
+  /* Ensure on top of bubble (which is usually z-index auto/0) */
+  pointer-events: auto;
+  /* Allow clicking to start following */
+  cursor: pointer;
+  transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+  /* Smooth movement when switching states */
+}
+
+/* Chat Open State - FigPal moves to bottom right corner */
+#figpal-container.chat-visible #figpal-follower {
+  left: 130px;
+  /* Align to right edge (Bubble is ~300px wide, center is 0, right is 150) */
+  top: auto;
+  bottom: -20px;
+  /* Align with bottom of bubble */
+  transform: translate(0, 0) rotate(10deg);
+  /* Slight tilt for personality? */
+}
+
+/* Resting State (Before clicking) */
+#figpal-container.resting {
+  /* Override the fixed position from JS */
+  left: calc(50% + 180px) !important;
+  /* Center + offset (nudged left another 20px) */
+  top: auto !important;
+  bottom: 80px !important;
+  /* Raised to 80px */
+  transform: none !important;
+  /* No cursor offset */
+  transition: all 0.3s ease-out;
+  /* Smooth transition when resetting or appearing */
+}
+
+/* When resting, maybe bounce a little? */
+#figpal-container.resting #figpal-follower {
+  animation: float 3s ease-in-out infinite;
+}
+
+@keyframes float {
+  0% {
+    transform: translate(-50%, -50%) translateY(0px);
+  }
+
+  50% {
+    transform: translate(-50%, -50%) translateY(-6px);
+  }
+
+  100% {
+    transform: translate(-50%, -50%) translateY(0px);
+  }
+}
+
+/* Chat Bubble Container */
+#figpal-chat-bubble {
+  position: absolute;
+  bottom: 0px;
+  /* Anchor bottom to cursor Y */
+  left: 0px;
+  /* Anchor left to cursor X */
+  transform: translateX(-50%) translateY(-20px) scale(0.9);
+  /* Start slightly smaller/higher */
+  transform-origin: bottom center;
+
+  width: 302px;
+  background: #FFFFFF;
+  border-radius: 16px;
+  box-shadow:
+    0px 4px 6px -1px rgba(0, 0, 0, 0.1),
+    0px 2px 4px -1px rgba(0, 0, 0, 0.06),
+    0px 20px 25px -5px rgba(0, 0, 0, 0.1);
+
+  opacity: 0;
+  visibility: hidden;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  pointer-events: none;
+  overflow: hidden;
+  font-family: "Inter", sans-serif;
+  color: #1e1e1e;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Visible State */
+#figpal-container.chat-visible #figpal-chat-bubble {
+  opacity: 1;
+  visibility: visible;
+  pointer-events: auto;
+  transform: translateX(-50%) translateY(-20px) scale(1);
+}
+
+/* Chat Header */
+.figpal-chat-header {
+  padding: 14px 17px;
+  font-weight: 600;
+  font-size: 16px;
+  background: #F7F7F7;
+  border-bottom: 1px solid #E5E5E5;
+  color: #000000;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.figpal-close-btn {
+  background: none;
+  border: none;
+  font-size: 20px;
+  line-height: 1;
+  color: #888;
+  cursor: pointer;
+  padding: 0 4px;
+  border-radius: 4px;
+  transition: color 0.1s;
+}
+
+.figpal-close-btn:hover {
+  color: #333;
+  background: #EAEAEA;
+}
+
+/* Chat Content Area */
+.figpal-chat-content {
+  padding: 16px;
+  font-size: 16px;
+  line-height: 1.5;
+  color: #1E1E1E;
+  max-height: 380px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  background: #FFFFFF;
+}
+
+/* Messages */
+.figpal-message {
+  padding: 8px 12px;
+  max-width: 90%;
+  word-wrap: break-word;
+  font-size: 14px;
+  margin-bottom: 4px;
+}
+
+/* Bot Messages - Plain Text */
+.figpal-message.bot {
+  background: transparent;
+  color: #1E1E1E;
+  padding-left: 0;
+  font-weight: 400;
+  /* Regular per design */
+  font-size: 16px;
+  align-self: flex-start;
+  margin-bottom: 8px;
+}
+
+/* User Messages - Gray Bubble */
+.figpal-message.user {
+  background: #D0D0D0;
+  /* Match design gray */
+  color: #1E1E1E;
+  padding: 12px 18px;
+  border-radius: 47px;
+  /* Pill shape from design */
+  align-self: flex-end;
+  font-size: 16px;
+}
+
+/* Thinking State */
+.figpal-message.thinking {
+  background: transparent;
+  align-self: flex-start;
+  padding-left: 0;
+  color: #888;
+  font-style: italic;
+  font-size: 14px;
+}
+
+/* Quick Actions Container */
+.figpal-quick-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  align-items: flex-start;
+  margin-bottom: 16px;
+}
+
+/* Quick Action Button */
+.figpal-quick-action-btn {
+  background: #FFFFFF;
+  border: 1px solid #CCCCCC;
+  border-radius: 6px;
+  padding: 8px 12px;
+  font-size: 12px;
+  color: #000000;
+  cursor: pointer;
+  transition: background 0.1s ease;
+  user-select: none;
+}
+
+.figpal-quick-action-btn:hover {
+  background: #F5F5F5;
+}
+
+/* Input Area */
+.figpal-chat-input-area {
+  padding: 16px;
+  background: #FFFFFF;
+  /* border-top removed in design, input has border */
+}
+
+.figpal-chat-input-area input {
+  width: 100%;
+  padding: 12px 16px;
+  border-radius: 8px;
+  /* Or match design 8px-ish */
+  border: 1px solid #0D99FF;
+  /* Active state blue border from design */
+  outline: none;
+  color: #1E1E1E;
+  background-color: #FFFFFF;
+  /* Explicitly set background to avoiding dark mode overrides */
+  box-sizing: border-box;
+  box-shadow: 0 0 0 1px #0D99FF;
+  /* Double thickness effect */
+}
+
+.figpal-chat-input-area input::placeholder {
+  color: #888;
+}
