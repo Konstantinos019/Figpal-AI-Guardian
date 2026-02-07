@@ -20,7 +20,13 @@ chatBubble.innerHTML = `
     <button class="figpal-close-btn" aria-label="Close chat">×</button>
   </div>
   <div class="figpal-chat-content">
-    <div class="figpal-message bot">Hello! How can I help you design today?</div>
+    <div class="figpal-message-row bot">
+       <!-- Avatar injected via JS usually, but for initial HTML we add it manually or via JS init. 
+            Let's add it here for consistency if we can't use runtime URL easily in template string without variable.
+            Actually, we can use the variable if we have it. -->
+       <img src="${chrome.runtime.getURL('assets/selection.svg')}" class="figpal-avatar" />
+       <div class="figpal-message bot">Hello! How can I help you design today?</div>
+    </div>
     <div class="figpal-quick-actions">
       <div class="figpal-quick-action-btn">Compare component against codebase</div>
       <div class="figpal-quick-action-btn">Check component for design token usage</div>
@@ -72,30 +78,55 @@ quickActionBtns.forEach(btn => {
 // Chat Logic
 const chatContent = chatBubble.querySelector('.figpal-chat-content');
 const chatInput = chatBubble.querySelector('input');
+// Helper to add messages
+function addMessage(text, sender, isThinking = false) {
+  const contentArea = chatBubble.querySelector('.figpal-chat-content');
 
-function addMessage(text, sender) {
+  // Create Row Container
+  const row = document.createElement('div');
+  row.classList.add('figpal-message-row', sender);
+
+  // If Bot, add Avatar
+  if (sender === 'bot') {
+    // Hide previous avatars
+    const existingAvatars = contentArea.querySelectorAll('.figpal-avatar');
+    existingAvatars.forEach(avatar => {
+      avatar.remove();
+    });
+
+    const avatar = document.createElement('img');
+    avatar.src = chrome.runtime.getURL('assets/selection.svg'); // Reuse the FigPal SVG
+    avatar.classList.add('figpal-avatar');
+    row.appendChild(avatar);
+  }
+
+  // Create Message Bubble/Text
   const msgDiv = document.createElement('div');
   msgDiv.classList.add('figpal-message', sender);
+  if (isThinking) msgDiv.classList.add('thinking');
   msgDiv.textContent = text;
-  chatContent.appendChild(msgDiv);
-  chatContent.scrollTop = chatContent.scrollHeight; // Auto-scroll
+
+  row.appendChild(msgDiv);
+  contentArea.appendChild(row);
+  contentArea.scrollTop = contentArea.scrollHeight; // Auto-scroll
+
+  return { row, msgDiv };
 }
 
 function handleUserMessage(text, specificResponse = null) {
   addMessage(text, 'user');
 
-  // Show thinking state
-  const thinkingDiv = document.createElement('div');
-  thinkingDiv.classList.add('figpal-message', 'thinking');
-  thinkingDiv.textContent = 'Thinking...';
-  chatContent.appendChild(thinkingDiv);
-  chatContent.scrollTop = chatContent.scrollHeight;
+  // Show thinking state with Avatar
+  const { msgDiv: thinkingBubble } = addMessage('Thinking...', 'bot', true);
 
   // Fake delay then reply
   setTimeout(() => {
-    thinkingDiv.remove();
-    const reply = specificResponse || "Let me know, and I’ll help you right away!";
-    addMessage(reply, 'bot');
+    thinkingBubble.classList.remove('thinking');
+    thinkingBubble.textContent = specificResponse || "Let me know, and I’ll help you right away!";
+
+    // Auto-scroll again in case text expansion pushes it down
+    const contentArea = chatBubble.querySelector('.figpal-chat-content');
+    contentArea.scrollTop = contentArea.scrollHeight;
 
     // If it's the "Compare" flow, we might want to check the selection (future enhancement)
     // For now, the user specifically asked for this text.
@@ -162,6 +193,11 @@ function animate() {
   requestAnimationFrame(animate);
 }
 
+// Prevent scroll propagation from chat to Figma canvas
+chatBubble.addEventListener('wheel', (e) => {
+  e.stopPropagation();
+}, { passive: false });
+
 // Initialize position to avoid jump (not strictly needed with the else block above, but good practice)
 currentX = window.innerWidth / 2;
 currentY = window.innerHeight - 100; // Approx bottom
@@ -207,6 +243,56 @@ window.addEventListener('keydown', (e) => {
     }
   }
 }, { capture: true });
+
+// Dragging Logic
+let isDraggingChat = false;
+let dragOffsetX = 0;
+let dragOffsetY = 0;
+
+// Attach drag listener to FOLLOWER (Character) instead of specific handle
+follower.addEventListener('mousedown', (e) => {
+  // Only drag if the chat is visible. Otherwise it's just the "follow me" button.
+  if (container.classList.contains('chat-visible')) {
+    isDraggingChat = true;
+    container.classList.remove('resting'); // Ensure we can move it
+
+    const currentLeft = container.offsetLeft;
+    const currentTop = container.offsetTop;
+
+    dragOffsetX = e.clientX - currentLeft;
+    dragOffsetY = e.clientY - currentTop;
+
+    e.preventDefault();
+    e.stopPropagation();
+  }
+});
+
+window.addEventListener('mousemove', (e) => {
+  // Handle Chat Dragging
+  if (isDraggingChat) {
+    const x = e.clientX - dragOffsetX;
+    const y = e.clientY - dragOffsetY;
+
+    // Update container position
+    container.style.left = x + 'px';
+    container.style.top = y + 'px';
+
+    // Sync currentX/Y so other animations don't jump
+    currentX = x;
+    currentY = y;
+  }
+  // Handle Follower Tracking (existing logic)
+  else {
+    mouseX = e.clientX;
+    mouseY = e.clientY;
+  }
+});
+
+window.addEventListener('mouseup', () => {
+  if (isDraggingChat) {
+    isDraggingChat = false;
+  }
+});
 
 // Add mouse move listener - using animate() now
 // window.addEventListener('mousemove', updatePosition);

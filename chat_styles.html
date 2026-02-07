@@ -1,0 +1,411 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FigPal Chat Styles</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Outfit:wght@500;700&family=Space+Grotesk:wght@500&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f0f2f5;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 40px;
+            padding: 40px;
+            justify-content: center;
+            align-items: flex-start;
+        }
+
+        h1 {
+            width: 100%;
+            text-align: center;
+            margin-bottom: 20px;
+            color: #333;
+        }
+
+        .style-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .style-label {
+            font-weight: 600;
+            color: #666;
+            margin-bottom: 5px;
+        }
+
+        /* --- Base Chat Structure --- */
+        .chat-preview {
+            width: 320px;
+            height: 400px;
+            display: flex;
+            flex-direction: column;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .header {
+            padding: 16px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .content {
+            flex: 1;
+            padding: 16px;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            overflow-y: auto;
+        }
+
+        .message-row {
+            display: flex;
+            gap: 8px;
+            align-items: flex-end;
+        }
+
+        .message-row.user {
+            flex-direction: row-reverse;
+        }
+
+        .avatar {
+            width: 28px;
+            height: 28px;
+            border-radius: 50%;
+            background-color: #ddd;
+            flex-shrink: 0;
+            background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><circle cx="50" cy="50" r="50" fill="%23a0c4ff"/><circle cx="35" cy="40" r="5" fill="black"/><circle cx="65" cy="40" r="5" fill="black"/><path d="M 30 65 Q 50 75 70 65" stroke="black" stroke-width="3" fill="none"/></svg>');
+            background-size: cover;
+        }
+
+        .message {
+            max-width: 80%;
+            padding: 10px 14px;
+            font-size: 14px;
+            line-height: 1.4;
+        }
+
+        .input-area {
+            padding: 12px;
+        }
+
+        .input-box {
+            width: 100%;
+            padding: 10px;
+            box-sizing: border-box;
+            border: none;
+            outline: none;
+        }
+
+        /* --- STYLE 1: Modern Minimal (Clean, Apple-like) --- */
+        .style-1 .chat-preview {
+            background: #fff;
+            border-radius: 20px;
+            box-shadow: 0 10px 40px -10px rgba(0,0,0,0.1);
+            font-family: 'Inter', sans-serif;
+        }
+        .style-1 .header {
+            background: rgba(255,255,255,0.8);
+            backdrop-filter: blur(10px);
+            border-bottom: 1px solid #f0f0f0;
+            font-weight: 600;
+        }
+        .style-1 .message.bot {
+            background: #f2f2f7;
+            color: #000;
+            border-radius: 18px 18px 18px 4px;
+        }
+        .style-1 .message.user {
+            background: #007AFF;
+            color: #fff;
+            border-radius: 18px 18px 4px 18px;
+        }
+        .style-1 .input-area {
+            border-top: 1px solid #f0f0f0;
+        }
+        .style-1 .input-box {
+            background: #f2f2f7;
+            border-radius: 20px;
+        }
+
+        /* --- STYLE 2: Playful & Bouncy (Outfit font, Vivid) --- */
+        .style-2 .chat-preview {
+            background: #fff;
+            border-radius: 24px;
+            border: 2px solid #111;
+            box-shadow: 6px 6px 0px #111;
+            font-family: 'Outfit', sans-serif;
+        }
+        .style-2 .header {
+            background: #FFD23F;
+            border-bottom: 2px solid #111;
+            color: #111;
+            font-weight: 700;
+        }
+        .style-2 .message.bot {
+            background: #EEF0F2;
+            color: #111;
+            border-radius: 16px;
+            border: 1px solid #111;
+        }
+        .style-2 .message.user {
+            background: #FF6B6B;
+            color: #fff;
+            border-radius: 16px;
+            border: 1px solid #111;
+        }
+        .style-2 .avatar {
+            border: 1px solid #111;
+        }
+        .style-2 .input-box {
+            background: #fff;
+            border: 2px solid #111;
+            border-radius: 12px;
+        }
+
+        /* --- STYLE 3: Glassmorphism (Gradients, Blur) --- */
+        .style-3 .chat-preview {
+            background: rgba(255, 255, 255, 0.65);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border-radius: 24px;
+            border: 1px solid rgba(255, 255, 255, 0.5);
+            box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.15);
+            font-family: 'Inter', sans-serif;
+            z-index: 1;
+        }
+        /* Background blob for demo */
+        .style-3-wrapper {
+            position: relative;
+        }
+        .style-3-wrapper::before {
+            content: '';
+            position: absolute;
+            top: -20px;
+            right: -20px;
+            width: 150px;
+            height: 150px;
+            background: linear-gradient(135deg, #FF61D2, #FE9090);
+            border-radius: 50%;
+            z-index: 0;
+        }
+        .style-3 .header {
+            background: transparent;
+            border-bottom: 1px solid rgba(255,255,255,0.3);
+            font-weight: 600;
+            color: #333;
+        }
+        .style-3 .message.bot {
+            background: rgba(255,255,255,0.7);
+            color: #333;
+            border-radius: 16px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.02);
+        }
+        .style-3 .message.user {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: #fff;
+            border-radius: 16px;
+            box-shadow: 0 4px 10px rgba(118, 75, 162, 0.3);
+        }
+        .style-3 .input-box {
+            background: rgba(255,255,255,0.5);
+            border-radius: 16px;
+            border: 1px solid rgba(255,255,255,0.6);
+        }
+
+        /* --- STYLE 4: Structural / Technical (Space Grotesk, Grid) --- */
+        .style-4 .chat-preview {
+            background: #fff;
+            border-radius: 12px;
+            box-shadow: 0 0 0 1px #E5E5E5, 0 20px 40px -10px rgba(0,0,0,0.08);
+            font-family: 'Space Grotesk', sans-serif;
+        }
+        .style-4 .header {
+            border-bottom: 1px solid #E5E5E5;
+            background: #FAFAFA;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            font-size: 14px;
+        }
+        .style-4 .message.bot {
+            background: #F4F4F5;
+            color: #18181B;
+            border-radius: 4px 12px 12px 12px;
+            font-weight: 500;
+        }
+        .style-4 .message.user {
+            background: #18181B;
+            color: #fff;
+            border-radius: 12px 4px 12px 12px;
+        }
+        .style-4 .avatar {
+            border-radius: 6px;
+        }
+        .style-4 .input-box {
+            border: 1px solid #E5E5E5;
+            border-radius: 8px;
+            background: #fff;
+            transition: all 0.2s;
+        }
+        .style-4 .input-box:focus {
+            border-color: #18181B;
+        }
+
+        /* --- STYLE 5: Soft / Neumorphic (Subtle) --- */
+        .style-5 .chat-preview {
+            background: #f2f6ff;
+            border-radius: 30px;
+            box-shadow: 20px 20px 60px #ced3dc, -20px -20px 60px #ffffff;
+            font-family: 'Inter', sans-serif;
+        }
+        .style-5 .header {
+            color: #555;
+            font-weight: 600;
+        }
+        .style-5 .message.bot {
+            background: #f2f6ff;
+            color: #555;
+            border-radius: 20px;
+            box-shadow: 5px 5px 10px #e1e5ee, -5px -5px 10px #ffffff;
+        }
+        .style-5 .message.user {
+            background: #7b61ff;
+            color: #fff;
+            border-radius: 20px;
+            box-shadow: 5px 5px 10px #6952d9, -5px -5px 10px #8d70ff;
+        }
+        .style-5 .input-box {
+            background: #f2f6ff;
+            border-radius: 50px;
+            box-shadow: inset 5px 5px 10px #e1e5ee, inset -5px -5px 10px #ffffff;
+            padding-left: 20px;
+        }
+    </style>
+</head>
+<body>
+
+    <h1>Pick Your FigPal Vibe 🎨</h1>
+
+    <div class="style-container style-1">
+        <div class="style-label">Style 1: Modern Minimal</div>
+        <div class="chat-preview">
+            <div class="header">FigPal AI <span>×</span></div>
+            <div class="content">
+                <div class="message-row">
+                    <div class="avatar"></div>
+                    <div class="message bot">Hey there! I'm ready to help you design.</div>
+                </div>
+                <div class="message-row user">
+                    <div class="message user">Can you check these tokens?</div>
+                </div>
+                <div class="message-row">
+                    <div class="avatar"></div>
+                    <div class="message bot">Sure thing! Scanning your selection now...</div>
+                </div>
+            </div>
+            <div class="input-area">
+                <input class="input-box" type="text" placeholder="Ask away...">
+            </div>
+        </div>
+    </div>
+
+    <div class="style-container style-2">
+        <div class="style-label">Style 2: Playful & Pop</div>
+        <div class="chat-preview">
+            <div class="header">FigPal AI <span>×</span></div>
+            <div class="content">
+                <div class="message-row">
+                    <div class="avatar"></div>
+                    <div class="message bot">Hey there! I'm ready to help you design.</div>
+                </div>
+                <div class="message-row user">
+                    <div class="message user">Can you check these tokens?</div>
+                </div>
+                <div class="message-row">
+                    <div class="avatar"></div>
+                    <div class="message bot">Sure thing! Scanning your selection now...</div>
+                </div>
+            </div>
+            <div class="input-area">
+                <input class="input-box" type="text" placeholder="Ask away...">
+            </div>
+        </div>
+    </div>
+
+    <div class="style-container style-3-wrapper style-3">
+        <div class="style-label">Style 3: Glassmorphism</div>
+        <div class="chat-preview">
+            <div class="header">FigPal AI <span>×</span></div>
+            <div class="content">
+                <div class="message-row">
+                    <div class="avatar"></div>
+                    <div class="message bot">Hey there! I'm ready to help you design.</div>
+                </div>
+                <div class="message-row user">
+                    <div class="message user">Can you check these tokens?</div>
+                </div>
+                <div class="message-row">
+                    <div class="avatar"></div>
+                    <div class="message bot">Sure thing! Scanning your selection now...</div>
+                </div>
+            </div>
+            <div class="input-area">
+                <input class="input-box" type="text" placeholder="Ask away...">
+            </div>
+        </div>
+    </div>
+
+    <div class="style-container style-4">
+        <div class="style-label">Style 4: Structural / Technical</div>
+        <div class="chat-preview">
+            <div class="header">FigPal AI <span>×</span></div>
+            <div class="content">
+                <div class="message-row">
+                    <div class="avatar"></div>
+                    <div class="message bot">Hey there! I'm ready to help you design.</div>
+                </div>
+                <div class="message-row user">
+                    <div class="message user">Can you check these tokens?</div>
+                </div>
+                <div class="message-row">
+                    <div class="avatar"></div>
+                    <div class="message bot">Sure thing! Scanning your selection now...</div>
+                </div>
+            </div>
+            <div class="input-area">
+                <input class="input-box" type="text" placeholder="Ask away...">
+            </div>
+        </div>
+    </div>
+
+    <div class="style-container style-5">
+        <div class="style-label">Style 5: Soft / Neumorphic</div>
+        <div class="chat-preview">
+            <div class="header">FigPal AI <span>×</span></div>
+            <div class="content">
+                <div class="message-row">
+                    <div class="avatar"></div>
+                    <div class="message bot">Hey there! I'm ready to help you design.</div>
+                </div>
+                <div class="message-row user">
+                    <div class="message user">Can you check these tokens?</div>
+                </div>
+                <div class="message-row">
+                    <div class="avatar"></div>
+                    <div class="message bot">Sure thing! Scanning your selection now...</div>
+                </div>
+            </div>
+            <div class="input-area">
+                <input class="input-box" type="text" placeholder="Ask away...">
+            </div>
+        </div>
+    </div>
+
+</body>
+</html>

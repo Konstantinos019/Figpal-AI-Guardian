@@ -35,13 +35,19 @@
 
 /* Chat Open State - FigPal moves to bottom right corner */
 #figpal-container.chat-visible #figpal-follower {
-  left: 130px;
-  /* Align to right edge (Bubble is ~300px wide, center is 0, right is 150) */
+  left: 148px;
+  /* Align slightly outside the right edge */
   top: auto;
-  bottom: -20px;
-  /* Align with bottom of bubble */
-  transform: translate(0, 0) rotate(10deg);
-  /* Slight tilt for personality? */
+  bottom: -28px;
+  /* Position below the bubble */
+  transform: translate(0, 0) rotate(0deg);
+  /* Upright position */
+  cursor: grab;
+  /* Indicate draggable */
+}
+
+#figpal-container.chat-visible #figpal-follower:active {
+  cursor: grabbing;
 }
 
 /* Resting State (Before clicking) */
@@ -129,6 +135,7 @@
 }
 
 .figpal-close-btn {
+  margin-left: auto;
   background: none;
   border: none;
   font-size: 20px;
@@ -153,43 +160,63 @@
   color: #1E1E1E;
   max-height: 380px;
   overflow-y: auto;
+  overscroll-behavior: contain;
+  /* Prevents scroll chaining to parent */
   display: flex;
   flex-direction: column;
   gap: 12px;
   background: #FFFFFF;
 }
 
-/* Messages */
-.figpal-message {
-  padding: 8px 12px;
-  max-width: 90%;
-  word-wrap: break-word;
-  font-size: 14px;
-  margin-bottom: 4px;
+/* Messages Wrapper */
+.figpal-message-row {
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+  margin-bottom: 12px;
 }
 
-/* Bot Messages - Plain Text */
+.figpal-message-row.user {
+  flex-direction: row-reverse;
+}
+
+/* Avatar Styling */
+.figpal-avatar {
+  width: 24px;
+  height: 24px;
+  flex-shrink: 0;
+  border-radius: 0;
+  /* Removed masking per request */
+  object-fit: contain;
+  margin-top: 2px;
+  /* Align with text baseline */
+}
+
+/* Message Bubble Base */
+.figpal-message {
+  max-width: 85%;
+  word-wrap: break-word;
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+/* Bot Messages - Plain Text next to Avatar */
 .figpal-message.bot {
   background: transparent;
   color: #1E1E1E;
-  padding-left: 0;
+  padding: 0;
   font-weight: 400;
-  /* Regular per design */
-  font-size: 16px;
-  align-self: flex-start;
-  margin-bottom: 8px;
 }
 
-/* User Messages - Gray Bubble */
+/* User Messages - Gray Bubble (Pill) */
 .figpal-message.user {
-  background: #D0D0D0;
-  /* Match design gray */
+  background: #F0F0F0;
+  /* Lighter gray for cleaner look */
   color: #1E1E1E;
-  padding: 12px 18px;
-  border-radius: 47px;
-  /* Pill shape from design */
-  align-self: flex-end;
-  font-size: 16px;
+  padding: 8px 16px;
+  border-radius: 20px 20px 4px 20px;
+  /* Modern bubble shape */
+  font-weight: 400;
 }
 
 /* Thinking State */
