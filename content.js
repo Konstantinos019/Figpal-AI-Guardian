@@ -803,6 +803,14 @@
           activePhysics = true;
         } else if (isReturningHome && !container.classList.contains('resting')) {
           // Return Home
+          const restingX = window.innerWidth / 2 + 180;
+          let panelHeight = 0;
+          const panelHeightStr = getComputedStyle(document.documentElement).getPropertyValue('--guardian-panel-height').trim();
+          if (document.body.classList.contains('guardian-active')) {
+            panelHeight = parseInt(panelHeightStr) || 0;
+          }
+          const restingY = window.innerHeight - 80 - panelHeight;
+
           targetX = restingX;
           targetY = restingY;
           activePhysics = true;
@@ -816,11 +824,29 @@
             currentY = restingY;
           }
         } else if (container.classList.contains('resting')) {
-          currentX = restingX;
-          currentY = restingY;
-          // Reset ghost to home
-          ghostX = restingX;
-          ghostY = restingY;
+          const restingX = window.innerWidth / 2 + 180;
+          let panelHeight = 0;
+          const panelHeightStr = getComputedStyle(document.documentElement).getPropertyValue('--guardian-panel-height').trim();
+          if (document.body.classList.contains('guardian-active')) {
+            panelHeight = parseInt(panelHeightStr) || 0;
+          }
+          const restingY = window.innerHeight - 80 - panelHeight;
+
+          targetX = restingX;
+          targetY = restingY;
+          // Apply directly for resting, but maybe we want smooth adjustment if panel resizes?
+          // If we are already resting and panel moves, we should probably lerp to new position or set it?
+          // Let's set it directly for now, or enable physics if far away?
+
+          if (Math.abs(currentX - restingX) > 2 || Math.abs(currentY - restingY) > 2) {
+            activePhysics = true;
+          } else {
+            currentX = restingX;
+            currentY = restingY;
+            // Reset ghost to home
+            ghostX = restingX;
+            ghostY = restingY;
+          }
         }
 
         if (activePhysics && !isDraggingChat) {

@@ -17,19 +17,19 @@
         "*://*.figma.com/*"
       ],
       "js": [
-        "content.js"
+        "content.js",
+        "guardian-panel.js"
       ],
       "css": [
-        "styles.css"
+        "styles.css",
+        "guardian-styles.css"
       ]
     }
   ],
   "web_accessible_resources": [
     {
       "resources": [
-        "assets/selection.svg",
-        "assets/thinking.svg",
-        "assets/home.svg"
+        "assets/*"
       ],
       "matches": [
         "<all_urls>"
