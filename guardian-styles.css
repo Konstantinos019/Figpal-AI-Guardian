@@ -509,6 +509,231 @@ body.guardian-active #guardian-launcher-btn {
     background: #334155;
 }
 
+/* 7b. Changes Flow Container */
+.guardian-changes-flow {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    width: 100%;
+    grid-column: 1 / -1;
+}
+
+.guardian-step {
+    height: 100%;
+    overflow-y: auto;
+}
+
+/* Step 0: Diff Container */
+.guardian-diff-container {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    padding: 24px;
+    background: #fff;
+}
+
+.guardian-diff-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 20px;
+}
+
+.guardian-diff-title {
+    font-size: 20px;
+    font-weight: 600;
+    color: #0f172a;
+}
+
+.guardian-diff-subtitle {
+    font-size: 14px;
+    color: #64748b;
+    margin-top: 4px;
+}
+
+.guardian-diff-actions {
+    display: flex;
+    gap: 12px;
+}
+
+.guardian-btn-explore {
+    background: #155dfc;
+    color: white;
+    border: none;
+    padding: 10px 20px;
+    border-radius: 8px;
+    font-weight: 600;
+    font-size: 14px;
+    cursor: pointer;
+    transition: background 0.2s;
+}
+
+.guardian-btn-explore:hover {
+    background: #1248d4;
+}
+
+.guardian-btn-dismiss {
+    background: white;
+    border: 1px solid #e2e8f0;
+    color: #64748b;
+    padding: 10px 20px;
+    border-radius: 8px;
+    font-weight: 600;
+    font-size: 14px;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.guardian-btn-dismiss:hover {
+    background: #f8fafc;
+    border-color: #cbd5e1;
+}
+
+.guardian-btn-back {
+    background: transparent;
+    border: 1px solid #e2e8f0;
+    color: #64748b;
+    padding: 8px 16px;
+    border-radius: 8px;
+    font-weight: 500;
+    font-size: 14px;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.guardian-btn-back:hover {
+    background: #f8fafc;
+    color: #0f172a;
+}
+
+.guardian-diff-toggle-group {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 20px;
+}
+
+.guardian-diff-toggle-btn {
+    padding: 8px 16px;
+    background: #f1f5f9;
+    border: none;
+    border-radius: 6px;
+    font-size: 13px;
+    font-weight: 500;
+    color: #64748b;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.guardian-diff-toggle-btn.active {
+    background: #0f172a;
+    color: white;
+}
+
+.guardian-diff-toggle-btn:hover:not(.active) {
+    background: #e2e8f0;
+}
+
+.guardian-diff-table-header {
+    display: grid;
+    grid-template-columns: 1.5fr 1.5fr 1.5fr 1fr;
+    gap: 16px;
+    padding: 12px 16px;
+    background: #f8fafc;
+    border-radius: 8px 8px 0 0;
+    font-size: 12px;
+    font-weight: 600;
+    color: #64748b;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.guardian-diff-content {
+    flex: 1;
+    overflow-y: auto;
+    border: 1px solid #e2e8f0;
+    border-top: none;
+    border-radius: 0 0 8px 8px;
+}
+
+.guardian-diff-row {
+    display: grid;
+    grid-template-columns: 1.5fr 1.5fr 1.5fr 1fr;
+    gap: 16px;
+    padding: 14px 16px;
+    border-bottom: 1px solid #f1f5f9;
+    align-items: center;
+}
+
+.guardian-diff-row:last-child {
+    border-bottom: none;
+}
+
+.guardian-diff-row:hover {
+    background: #fafbfc;
+}
+
+.guardian-diff-cell {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 14px;
+    color: #0f172a;
+}
+
+.guardian-diff-checkbox {
+    width: 16px;
+    height: 16px;
+    accent-color: #155dfc;
+}
+
+.guardian-color-preview {
+    width: 24px;
+    height: 24px;
+    border-radius: 4px;
+    border: 1px solid rgba(0, 0, 0, 0.1);
+}
+
+.guardian-value-pill {
+    background: #f1f5f9;
+    padding: 4px 10px;
+    border-radius: 4px;
+    font-size: 12px;
+    font-family: 'SF Mono', monospace;
+    color: #475569;
+}
+
+.guardian-badge-status {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 13px;
+    font-weight: 500;
+}
+
+.guardian-badge-status img {
+    width: 14px;
+    height: 14px;
+}
+
+.guardian-badge-status.mismatch {
+    color: #dc2626;
+}
+
+.guardian-badge-status.match {
+    color: #16a34a;
+}
+
+.guardian-decision-footer {
+    margin-top: 20px;
+    padding-top: 16px;
+    border-top: 1px solid #e2e8f0;
+}
+
+.guardian-decision-hint {
+    font-size: 14px;
+    color: #64748b;
+}
+
 /* 8. Suggested Improvements Tab Styles */
 .guardian-improvements-container {
     display: flex;

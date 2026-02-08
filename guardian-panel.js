@@ -79,128 +79,254 @@ const TABS_CONTENT = {
     </div>
   `,
   changes: `
-    <div class="guardian-improvements-container">
-      <!-- Sub-navigation Stepper -->
-      <div class="guardian-stepper">
-        <div class="guardian-stepper-step active">
-          <div class="guardian-stepper-number active">1</div>
-          <span>Review</span>
-        </div>
-        <div class="guardian-stepper-step">
-          <div class="guardian-stepper-number">2</div>
-          <span>Preview</span>
-        </div>
-        <div class="guardian-stepper-step">
-          <div class="guardian-stepper-number">3</div>
-          <span>Success</span>
+    <div class="guardian-changes-flow" data-step="0">
+      <!-- STEP 0: Component Diff View -->
+      <div class="guardian-step step-0">
+        <div class="guardian-diff-container">
+          <div class="guardian-diff-header">
+            <div>
+              <div class="guardian-diff-title">Component Diff — Badge</div>
+              <div class="guardian-diff-subtitle">Figma vs Code</div>
+            </div>
+            <div class="guardian-diff-actions">
+               <button class="guardian-btn-explore">Explore Changes</button>
+               <button class="guardian-btn-dismiss">Dismiss</button>
+            </div>
+          </div>
+          
+          <div class="guardian-diff-toggle-group">
+            <button class="guardian-diff-toggle-btn active">Overview</button>
+            <button class="guardian-diff-toggle-btn">Details</button>
+            <button class="guardian-diff-toggle-btn">Comments</button>
+          </div>
+          
+          <div class="guardian-diff-table-header">
+            <div>Aspect</div>
+            <div>Design (Figma)</div>
+            <div>Code (System)</div>
+            <div>Status</div>
+          </div>
+          
+          <div class="guardian-diff-content">
+            <!-- Row 1: Background Color -->
+            <div class="guardian-diff-row">
+              <div class="guardian-diff-cell">
+                <input type="checkbox" class="guardian-diff-checkbox" checked>
+                <span>Background color</span>
+              </div>
+              <div class="guardian-diff-cell">
+                <div class="guardian-color-preview" style="background: linear-gradient(to right, #a855f7, #ec4899);"></div>
+                <span class="guardian-value-pill">linear-gradient</span>
+              </div>
+              <div class="guardian-diff-cell">
+                <span class="guardian-value-pill">token/color/badge/info</span>
+              </div>
+              <div class="guardian-badge-status mismatch">
+                <img src="${ASSETS.mismatch}"> Mismatch
+              </div>
+            </div>
+
+            <!-- Row 2: Icon Name -->
+            <div class="guardian-diff-row">
+              <div class="guardian-diff-cell">
+                <input type="checkbox" class="guardian-diff-checkbox" checked>
+                <span>Icon name</span>
+              </div>
+              <div class="guardian-diff-cell">
+                <span class="guardian-value-pill">custom-star</span>
+              </div>
+              <div class="guardian-diff-cell">
+                <span class="guardian-value-pill">icon/star-filled</span>
+              </div>
+              <div class="guardian-badge-status mismatch">
+                <img src="${ASSETS.mismatch}"> Mismatch
+              </div>
+            </div>
+
+            <!-- Row 3: Font Size (Match) -->
+            <div class="guardian-diff-row">
+              <div class="guardian-diff-cell">
+                <input type="checkbox" class="guardian-diff-checkbox" style="opacity:0.3" disabled>
+                <span>Font size</span>
+              </div>
+              <div class="guardian-diff-cell">
+                <span class="guardian-value-pill">14px</span>
+              </div>
+              <div class="guardian-diff-cell">
+                <span class="guardian-value-pill">14px</span>
+              </div>
+              <div class="guardian-badge-status match">
+                <img src="${ASSETS.match}"> Match
+              </div>
+            </div>
+
+            <!-- Row 4: Border Radius (Match) -->
+            <div class="guardian-diff-row">
+              <div class="guardian-diff-cell">
+                <input type="checkbox" class="guardian-diff-checkbox" style="opacity:0.3" disabled>
+                <span>Border radius</span>
+              </div>
+              <div class="guardian-diff-cell">
+                <span class="guardian-value-pill">9999px</span>
+              </div>
+              <div class="guardian-diff-cell">
+                <span class="guardian-value-pill">9999px</span>
+              </div>
+              <div class="guardian-badge-status match">
+                <img src="${ASSETS.match}"> Match
+              </div>
+            </div>
+
+            <!-- Row 5: Variant Naming -->
+            <div class="guardian-diff-row">
+              <div class="guardian-diff-cell">
+                <input type="checkbox" class="guardian-diff-checkbox" checked>
+                <span>Variant naming</span>
+              </div>
+              <div class="guardian-diff-cell">
+                <span class="guardian-value-pill">Badge/Custom</span>
+              </div>
+              <div class="guardian-diff-cell">
+                <span class="guardian-value-pill">Badge/Info</span>
+              </div>
+              <div class="guardian-badge-status mismatch">
+                <img src="${ASSETS.mismatch}"> Mismatch
+              </div>
+            </div>
+          </div>
+
+          <div class="guardian-decision-footer">
+            <span class="guardian-decision-hint">Select mismatches and choose an alignment option</span>
+          </div>
         </div>
       </div>
 
-      <!-- Header Section -->
-      <div class="guardian-improvements-header">
-        <div class="guardian-improvements-mascot">
-          <img src="${ASSETS.avatar}" alt="FigPal">
-        </div>
-        <h2 class="guardian-improvements-title">Suggested Improvements</h2>
-      </div>
-      <p class="guardian-improvements-desc">Explore opportunities to enhance alignment with your design system. From nuanced guidance suggestions to specific technical issues.</p>
-
-      <!-- Improvement Cards -->
-      <div class="guardian-improvements-cards">
-        <!-- Card 1: Enhanced focus states -->
-        <div class="guardian-improvement-card">
-          <div class="guardian-improvement-icon accessibility">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <circle cx="12" cy="12" r="10"/>
-              <path d="M12 8v4l3 3"/>
-            </svg>
+      <!-- STEP 1: Suggested Improvements View -->
+      <div class="guardian-step step-1" style="display: none;">
+        <div class="guardian-improvements-container">
+          <!-- Sub-navigation Stepper -->
+          <div class="guardian-stepper">
+            <div class="guardian-stepper-step active">
+              <div class="guardian-stepper-number active">1</div>
+              <span>Review</span>
+            </div>
+            <div class="guardian-stepper-step">
+              <div class="guardian-stepper-number">2</div>
+              <span>Preview</span>
+            </div>
+            <div class="guardian-stepper-step">
+              <div class="guardian-stepper-number">3</div>
+              <span>Success</span>
+            </div>
           </div>
-          <div class="guardian-improvement-content">
-            <div class="guardian-improvement-top">
-              <span class="guardian-improvement-category">ACCESSIBILITY</span>
-              <div class="guardian-improvement-badges">
-                <span class="guardian-improvement-badge">A11y</span>
-                <span class="guardian-improvement-badge">Required</span>
+
+          <!-- Header Section -->
+          <div class="guardian-improvements-header">
+            <div class="guardian-improvements-mascot">
+              <img src="${ASSETS.avatar}" alt="FigPal">
+            </div>
+            <h2 class="guardian-improvements-title">Suggested Improvements</h2>
+          </div>
+          <p class="guardian-improvements-desc">Explore opportunities to enhance alignment with your design system. From nuanced guidance suggestions to specific technical issues.</p>
+
+          <!-- Improvement Cards -->
+          <div class="guardian-improvements-cards">
+            <!-- Card 1: Enhanced focus states -->
+            <div class="guardian-improvement-card">
+              <div class="guardian-improvement-icon accessibility">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <circle cx="12" cy="12" r="10"/>
+                  <path d="M12 8v4l3 3"/>
+                </svg>
+              </div>
+              <div class="guardian-improvement-content">
+                <div class="guardian-improvement-top">
+                  <span class="guardian-improvement-category">ACCESSIBILITY</span>
+                  <div class="guardian-improvement-badges">
+                    <span class="guardian-improvement-badge">A11y</span>
+                    <span class="guardian-improvement-badge">Required</span>
+                  </div>
+                </div>
+                <h3 class="guardian-improvement-card-title">Enhanced focus states</h3>
+                <p class="guardian-improvement-card-desc">Improved keyboard navigation with visible focus indicators meeting WCAG 2.1 AA standards.</p>
+                <div class="guardian-improvement-meta">
+                  <span>Impact: <strong>High</strong></span>
+                  <span>Affected: <strong>12 instances</strong></span>
+                </div>
+              </div>
+              <div class="guardian-improvement-chevron">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M9 18l6-6-6-6"/>
+                </svg>
               </div>
             </div>
-            <h3 class="guardian-improvement-card-title">Enhanced focus states</h3>
-            <p class="guardian-improvement-card-desc">Improved keyboard navigation with visible focus indicators meeting WCAG 2.1 AA standards.</p>
-            <div class="guardian-improvement-meta">
-              <span>Impact: <strong>High</strong></span>
-              <span>Affected: <strong>12 instances</strong></span>
-            </div>
-          </div>
-          <div class="guardian-improvement-chevron">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <path d="M9 18l6-6-6-6"/>
-            </svg>
-          </div>
-        </div>
 
-        <!-- Card 2: Updated color tokens -->
-        <div class="guardian-improvement-card">
-          <div class="guardian-improvement-icon visual">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <circle cx="12" cy="12" r="3"/>
-              <path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/>
-            </svg>
-          </div>
-          <div class="guardian-improvement-content">
-            <div class="guardian-improvement-top">
-              <span class="guardian-improvement-category">VISUAL</span>
-              <div class="guardian-improvement-badges">
-                <span class="guardian-improvement-badge">Visual</span>
-                <span class="guardian-improvement-badge">Recommended</span>
+            <!-- Card 2: Updated color tokens -->
+            <div class="guardian-improvement-card">
+              <div class="guardian-improvement-icon visual">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <circle cx="12" cy="12" r="3"/>
+                  <path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/>
+                </svg>
+              </div>
+              <div class="guardian-improvement-content">
+                <div class="guardian-improvement-top">
+                  <span class="guardian-improvement-category">VISUAL</span>
+                  <div class="guardian-improvement-badges">
+                    <span class="guardian-improvement-badge">Visual</span>
+                    <span class="guardian-improvement-badge">Recommended</span>
+                  </div>
+                </div>
+                <h3 class="guardian-improvement-card-title">Updated color tokens</h3>
+                <p class="guardian-improvement-card-desc">Refined button colors for better contrast and brand alignment across light and dark modes.</p>
+                <div class="guardian-improvement-meta">
+                  <span>Impact: <strong>Medium</strong></span>
+                  <span>Affected: <strong>12 instances</strong></span>
+                </div>
+              </div>
+              <div class="guardian-improvement-chevron">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M9 18l6-6-6-6"/>
+                </svg>
               </div>
             </div>
-            <h3 class="guardian-improvement-card-title">Updated color tokens</h3>
-            <p class="guardian-improvement-card-desc">Refined button colors for better contrast and brand alignment across light and dark modes.</p>
-            <div class="guardian-improvement-meta">
-              <span>Impact: <strong>Medium</strong></span>
-              <span>Affected: <strong>12 instances</strong></span>
-            </div>
-          </div>
-          <div class="guardian-improvement-chevron">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <path d="M9 18l6-6-6-6"/>
-            </svg>
-          </div>
-        </div>
 
-        <!-- Card 3: New variant: ghost-primary -->
-        <div class="guardian-improvement-card">
-          <div class="guardian-improvement-icon enhancement">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>
-            </svg>
-          </div>
-          <div class="guardian-improvement-content">
-            <div class="guardian-improvement-top">
-              <span class="guardian-improvement-category">ENHANCEMENT</span>
-              <div class="guardian-improvement-badges">
-                <span class="guardian-improvement-badge">New</span>
-                <span class="guardian-improvement-badge">Optional</span>
+            <!-- Card 3: New variant: ghost-primary -->
+            <div class="guardian-improvement-card">
+              <div class="guardian-improvement-icon enhancement">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>
+                </svg>
+              </div>
+              <div class="guardian-improvement-content">
+                <div class="guardian-improvement-top">
+                  <span class="guardian-improvement-category">ENHANCEMENT</span>
+                  <div class="guardian-improvement-badges">
+                    <span class="guardian-improvement-badge">New</span>
+                    <span class="guardian-improvement-badge">Optional</span>
+                  </div>
+                </div>
+                <h3 class="guardian-improvement-card-title">New variant: ghost-primary</h3>
+                <p class="guardian-improvement-card-desc">A new subtle variant that maintains primary color signaling without strong visual weight.</p>
+                <div class="guardian-improvement-meta">
+                  <span>Impact: <strong>Low</strong></span>
+                  <span>Affected: <strong>Optional</strong></span>
+                </div>
+              </div>
+              <div class="guardian-improvement-chevron">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M9 18l6-6-6-6"/>
+                </svg>
               </div>
             </div>
-            <h3 class="guardian-improvement-card-title">New variant: ghost-primary</h3>
-            <p class="guardian-improvement-card-desc">A new subtle variant that maintains primary color signaling without strong visual weight.</p>
-            <div class="guardian-improvement-meta">
-              <span>Impact: <strong>Low</strong></span>
-              <span>Affected: <strong>Optional</strong></span>
-            </div>
           </div>
-          <div class="guardian-improvement-chevron">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <path d="M9 18l6-6-6-6"/>
-            </svg>
+
+          <!-- Footer -->
+          <div class="guardian-improvements-footer">
+            <button class="guardian-btn-back">← Back to Diff</button>
+            <button class="guardian-improvements-cta">Preview how to fix</button>
           </div>
         </div>
-      </div>
-
-      <!-- Footer -->
-      <div class="guardian-improvements-footer">
-        <span class="guardian-improvements-count">3 improvements identified</span>
-        <button class="guardian-improvements-cta">Preview how to fix</button>
       </div>
     </div>
   `,
@@ -381,16 +507,32 @@ function initGuardian() {
       alert(`Guardian: Opening ${link.textContent.trim()} in new tab`);
     }
 
-    // 2. Explore Changes
+    // 2. Explore Changes - transition to Step 1 (improvements)
     if (target.closest('.guardian-btn-explore')) {
-      console.log("Guardian: Exploring changes...");
-      alert("Guardian: Highlighting component differences on canvas...");
+      const flowContainer = panel.querySelector('.guardian-changes-flow');
+      if (flowContainer) {
+        flowContainer.querySelector('.step-0').style.display = 'none';
+        flowContainer.querySelector('.step-1').style.display = 'block';
+        flowContainer.dataset.step = '1';
+        console.log("Guardian: Transitioning to Suggested Improvements...");
+      }
     }
 
-    // 3. Dismiss Changes
+    // 3. Dismiss Changes - just log for now
     if (target.closest('.guardian-btn-dismiss')) {
-      console.log("Guardian: Dismissing changes...");
-      alert("Guardian: Changes dismissed.");
+      console.log("Guardian: Changes dismissed.");
+      // Could hide the diff or show a dismissed state
+    }
+
+    // 3b. Back to Diff - transition back to Step 0
+    if (target.closest('.guardian-btn-back')) {
+      const flowContainer = panel.querySelector('.guardian-changes-flow');
+      if (flowContainer) {
+        flowContainer.querySelector('.step-1').style.display = 'none';
+        flowContainer.querySelector('.step-0').style.display = 'block';
+        flowContainer.dataset.step = '0';
+        console.log("Guardian: Back to Diff view...");
+      }
     }
 
     // 4. Audit Cards

@@ -1,6 +1,110 @@
 (function () {
   let isInjected = false;
 
+  // 🥚 Easter Egg: Special frame names that trigger fun messages
+  const EASTER_EGG_FRAMES = {
+    "Button - let's start mock flow": "What a cool button, but did you know that it has some diffs? 🔮"
+  };
+
+  // Track which Easter eggs have been shown in this session to avoid spam
+  const shownEasterEggs = new Set();
+
+  async function checkEasterEggSelection(fileKey, nodeId) {
+    console.log('🥚 Easter egg check started:', { fileKey, nodeId });
+
+    if (!fileKey || !nodeId) {
+      console.log('🥚 Skipping: missing fileKey or nodeId');
+      return;
+    }
+
+    // Don't check if already shown or no PAT
+    const eggKey = `${fileKey}:${nodeId}`;
+    if (shownEasterEggs.has(eggKey)) {
+      console.log('🥚 Skipping: already shown this egg');
+      return;
+    }
+
+    try {
+      const storage = await chrome.storage.local.get(['figmaPat']);
+      if (!storage.figmaPat) {
+        console.log('🥚 Skipping: no Figma PAT found');
+        return;
+      }
+
+      console.log('🥚 Fetching node from Figma API...');
+
+      const response = await fetch(`https://api.figma.com/v1/files/${fileKey}/nodes?ids=${nodeId}`, {
+        headers: { 'X-Figma-Token': storage.figmaPat }
+      });
+
+      if (!response.ok) {
+        console.log('🥚 API error:', response.status);
+        return;
+      }
+
+      const data = await response.json();
+      console.log('🥚 API response:', data);
+
+      const node = data.nodes[nodeId]?.document;
+
+      if (!node) {
+        console.log('🥚 Node not found in response');
+        return;
+      }
+
+      const nodeName = node.name;
+      console.log('🥚 Selected node name:', `"${nodeName}"`);
+      console.log('🥚 Looking for:', Object.keys(EASTER_EGG_FRAMES));
+
+      // Check for Easter egg match
+      if (EASTER_EGG_FRAMES[nodeName]) {
+        console.log('🥚 MATCH FOUND! Triggering Easter egg...');
+        shownEasterEggs.add(eggKey);
+        triggerEasterEggMessage(EASTER_EGG_FRAMES[nodeName]);
+      } else {
+        console.log('🥚 No match for this frame name');
+      }
+    } catch (e) {
+      console.warn('🥚 Easter egg check failed:', e);
+    }
+  }
+
+  function triggerEasterEggMessage(message) {
+    // Open chat if not visible and add the Easter egg message
+    const container = document.getElementById('figpal-container');
+    const chatBubble = document.getElementById('figpal-chat-bubble');
+
+    if (!container || !chatBubble) return;
+
+    // Make sure the chat is visible
+    if (!container.classList.contains('chat-visible')) {
+      container.classList.add('chat-visible');
+    }
+
+    // Add the Easter egg message to chat
+    const contentArea = chatBubble.querySelector('.figpal-chat-content');
+    if (!contentArea) return;
+
+    const row = document.createElement('div');
+    row.classList.add('figpal-message-row', 'bot');
+
+    const defaultSprite = chrome.runtime.getURL('assets/selection.svg');
+    const avatar = document.createElement('img');
+    avatar.src = defaultSprite;
+    avatar.classList.add('figpal-avatar');
+    row.appendChild(avatar);
+
+    const msgDiv = document.createElement('div');
+    msgDiv.classList.add('figpal-message', 'bot', 'easter-egg');
+    msgDiv.innerHTML = `<span class="easter-egg-sparkle">✨</span> ${message}`;
+    row.appendChild(msgDiv);
+
+    contentArea.appendChild(row);
+    contentArea.scrollTop = contentArea.scrollHeight;
+
+    console.log('DS Guardian: 🥚 Easter egg triggered!');
+  }
+
   function initFigPal() {
     // Continuous polling to handle SPA navigation and wait for specific Figma UI
     setInterval(() => {
@@ -32,6 +136,9 @@
       if (window.figpalSelectedNodeId && window.figpalSelectedNodeId !== window.lastLoggedNodeId) {
         console.log('DS Guardian: Selection updated to', window.figpalSelectedNodeId);
         window.lastLoggedNodeId = window.figpalSelectedNodeId;
+
+        // 🥚 Easter Egg: Check for special frame selection
+        checkEasterEggSelection(window.figpalFileKey, window.figpalSelectedNodeId);
       }
 
       // 2. Safeguard: Check if already injected
