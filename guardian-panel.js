@@ -285,7 +285,12 @@ function initGuardian() {
       </div>
 
       <div class="guardian-controls-right">
-        <button class="guardian-control-btn"><img src="${ASSETS.chevron}" style="width:16px"></button>
+        <button class="guardian-control-btn guardian-dock-toggle" title="Toggle dock position">
+          <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <rect x="1.5" y="1.5" width="5" height="13" rx="1" stroke="currentColor" stroke-width="1.5"/>
+            <rect x="9.5" y="1.5" width="5" height="13" rx="1" stroke="currentColor" stroke-width="1.5" opacity="0.4"/>
+          </svg>
+        </button>
         <button class="guardian-control-btn guardian-close-btn"><img src="${ASSETS.close}" style="width:16px"></button>
       </div>
     </div>
@@ -334,6 +339,35 @@ function initGuardian() {
 
   // Close buttons
   panel.querySelector('.guardian-close-btn').onclick = () => togglePanel(false);
+
+  // Dock toggle button - switch between bottom and right modes
+  const dockToggleBtn = panel.querySelector('.guardian-dock-toggle');
+  let isDockedRight = localStorage.getItem('guardian-dock-mode') === 'right';
+
+  const applyDockMode = () => {
+    if (isDockedRight) {
+      document.body.classList.add('guardian-docked-right');
+    } else {
+      document.body.classList.remove('guardian-docked-right');
+    }
+    localStorage.setItem('guardian-dock-mode', isDockedRight ? 'right' : 'bottom');
+  };
+
+  // Apply saved dock mode on init
+  applyDockMode();
+
+  if (dockToggleBtn) {
+    dockToggleBtn.onclick = () => {
+      isDockedRight = !isDockedRight;
+      applyDockMode();
+
+      // Re-dispatch resize event for FigPal to adjust
+      if (isActive) {
+        const height = isDockedRight ? 0 : (parseInt(getComputedStyle(document.documentElement).getPropertyValue('--guardian-panel-height')) || 400);
+        window.dispatchEvent(new CustomEvent('guardian-panel-resize', { detail: { height, isActive, isDockedRight } }));
+      }
+    };
+  }
 
   // Handle interactive elements via delegation
   panel.addEventListener('click', (e) => {
@@ -398,40 +432,56 @@ function initGuardian() {
 
   console.log("Guardian: Precision Panel Ready.");
 
-  // 4. Resize Logic
+  // 4. Resize Logic (supports both bottom and right dock modes)
   const resizeHandle = panel.querySelector('.guardian-resize-handle');
   let isResizing = false;
-  let startY, startHeight;
+  let startY, startX, startHeight, startWidth;
 
   resizeHandle.addEventListener('mousedown', (e) => {
     isResizing = true;
     startY = e.clientY;
-    // Get current height from CSS var or computed style
+    startX = e.clientX;
+
+    // Get current dimensions
     const currentHeightStr = getComputedStyle(document.documentElement).getPropertyValue('--guardian-panel-height').trim();
-    startHeight = parseInt(currentHeightStr) || 400; // Default fallback
+    const currentWidthStr = getComputedStyle(document.documentElement).getPropertyValue('--guardian-panel-width').trim();
+    startHeight = parseInt(currentHeightStr) || 400;
+    startWidth = parseInt(currentWidthStr) || 400;
 
     resizeHandle.classList.add('active');
-    document.body.style.cursor = 'row-resize';
-    document.body.style.userSelect = 'none'; // Prevent text selection during resize
-    resizeHandle.setPointerCapture(e.pointerId); // Capture pointer to ensure mouseup fires
+    document.body.style.cursor = isDockedRight ? 'col-resize' : 'row-resize';
+    document.body.style.userSelect = 'none';
+    resizeHandle.setPointerCapture(e.pointerId);
     e.preventDefault();
   });
 
   document.addEventListener('mousemove', (e) => {
     if (!isResizing) return;
 
-    const dy = startY - e.clientY; // Drag up increases height
-    let newHeight = startHeight + dy;
+    if (isDockedRight) {
+      // Horizontal resize for right dock mode
+      const dx = startX - e.clientX; // Drag left increases width
+      let newWidth = startWidth + dx;
 
-    // Constraints
-    if (newHeight < 200) newHeight = 200;
-    if (newHeight > window.innerHeight - 100) newHeight = window.innerHeight - 100;
+      // Constraints
+      if (newWidth < 300) newWidth = 300;
+      if (newWidth > window.innerWidth - 200) newWidth = window.innerWidth - 200;
 
-    document.documentElement.style.setProperty('--guardian-panel-height', `${newHeight}px`);
+      document.documentElement.style.setProperty('--guardian-panel-width', `${newWidth}px`);
+    } else {
+      // Vertical resize for bottom dock mode
+      const dy = startY - e.clientY;
+      let newHeight = startHeight + dy;
 
-    // Dispatch resize event
-    if (isActive) {
-      window.dispatchEvent(new CustomEvent('guardian-panel-resize', { detail: { height: newHeight, isActive: true } }));
+      if (newHeight < 200) newHeight = 200;
+      if (newHeight > window.innerHeight - 100) newHeight = window.innerHeight - 100;
+
+      document.documentElement.style.setProperty('--guardian-panel-height', `${newHeight}px`);
+
+      // Dispatch resize event
+      if (isActive) {
+        window.dispatchEvent(new CustomEvent('guardian-panel-resize', { detail: { height: newHeight, isActive: true } }));
+      }
     }
   });
 
@@ -440,7 +490,7 @@ function initGuardian() {
       isResizing = false;
       resizeHandle.classList.remove('active');
       document.body.style.cursor = '';
-      document.body.style.userSelect = ''; // Re-enable text selection
+      document.body.style.userSelect = '';
       if (resizeHandle.hasPointerCapture && resizeHandle.hasPointerCapture(e.pointerId)) {
         resizeHandle.releasePointerCapture(e.pointerId);
       }

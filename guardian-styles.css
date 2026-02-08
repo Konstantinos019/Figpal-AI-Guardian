@@ -2,6 +2,7 @@
 
 :root {
     --guardian-panel-height: 542px;
+    --guardian-panel-width: 400px;
     /* From design nodeId 352:329 */
     --guardian-tabs-height: 109px;
     --guardian-bg: #ffffff;
@@ -598,4 +599,98 @@ body.guardian-active #guardian-launcher-btn {
     background: #fff;
     border-color: #cbd5e1;
     color: #0f172a;
+}
+
+/* ============================================ */
+/* RIGHT DOCK MODE                              */
+/* ============================================ */
+
+/* Right dock mode - Panel positioning */
+body.guardian-docked-right #guardian-bottom-panel {
+    bottom: 0;
+    top: 0;
+    left: auto;
+    right: 0;
+    width: var(--guardian-panel-width);
+    height: 100%;
+    border-top: none;
+    border-left: 2px solid var(--guardian-border);
+    box-shadow: -4px 0 20px rgba(0, 0, 0, 0.05);
+    transform: translateX(100%);
+}
+
+body.guardian-docked-right.guardian-active #guardian-bottom-panel {
+    transform: translateX(0);
+}
+
+/* Right dock mode - Figma canvas adjustment */
+body.guardian-docked-right.guardian-active #react-page {
+    height: 100vh !important;
+    width: calc(100vw - var(--guardian-panel-width)) !important;
+    transition: width 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Right dock mode - Resize handle (horizontal) */
+body.guardian-docked-right .guardian-resize-handle {
+    top: 0;
+    bottom: 0;
+    left: -5px;
+    right: auto;
+    width: 10px;
+    height: auto;
+    cursor: col-resize;
+}
+
+/* Dock toggle button icon rotation for right mode */
+body.guardian-docked-right .guardian-dock-toggle svg {
+    transform: rotate(90deg);
+}
+
+/* ============================================ */
+/* RESPONSIVE LAYOUT (applies to both modes)   */
+/* ============================================ */
+
+/* When panel is narrow (< 600px), switch to single column */
+@container guardian-panel (max-width: 600px) {
+    .guardian-panel-body {
+        grid-template-columns: 1fr;
+    }
+
+    .guardian-tabs-header {
+        flex-wrap: wrap;
+        height: auto;
+        padding: 12px 16px;
+    }
+
+    .guardian-tab-btns-container {
+        margin-left: 0;
+        margin-top: 12px;
+        width: 100%;
+        flex-wrap: wrap;
+    }
+}
+
+/* Enable container queries on the panel */
+#guardian-bottom-panel {
+    container-type: inline-size;
+    container-name: guardian-panel;
+}
+
+/* Fallback for browsers without container queries */
+@media (max-width: 700px) {
+    body.guardian-docked-right .guardian-panel-body {
+        grid-template-columns: 1fr;
+    }
+
+    body.guardian-docked-right .guardian-tabs-header {
+        flex-wrap: wrap;
+        height: auto;
+        padding: 12px 16px;
+    }
+
+    body.guardian-docked-right .guardian-tab-btns-container {
+        margin-left: 0;
+        margin-top: 12px;
+        width: 100%;
+    }
 }
