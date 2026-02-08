@@ -715,6 +715,13 @@
   opacity: 0.8;
 }
 
+/* Menu Separator */
+.figpal-menu-separator {
+  height: 1px;
+  background: #383838;
+  margin: 4px 0;
+}
+
 @keyframes fadeIn {
   from {
     opacity: 0;

@@ -1007,6 +1007,17 @@
         <div class="figpal-menu-item" id="menu-open-panel">
            <span>🛡️</span> Open Guardian Panel
         </div>
+        <div class="figpal-menu-separator"></div>
+        <div class="figpal-menu-item" id="menu-toggle-chat">
+           <span>💬</span> Toggle Chat
+        </div>
+        <div class="figpal-menu-item" id="menu-follow-cursor">
+           <span>👆</span> Follow Cursor
+        </div>
+        <div class="figpal-menu-separator"></div>
+        <div class="figpal-menu-item" id="menu-hide-figpal">
+           <span>👁️</span> Hide FigPal
+        </div>
       `;
       document.body.appendChild(contextMenu);
 
@@ -1039,6 +1050,44 @@
           e.stopPropagation();
           window.dispatchEvent(new Event('guardian-panel-open'));
           contextMenu.classList.remove('visible');
+        });
+      }
+
+      const toggleChatBtn = contextMenu.querySelector('#menu-toggle-chat');
+      if (toggleChatBtn) {
+        toggleChatBtn.addEventListener('click', (e) => {
+          e.stopPropagation();
+          // Toggle chat visibility
+          if (container.classList.contains('chat-visible')) {
+            container.classList.remove('chat-visible');
+            container.classList.add('resting');
+          } else {
+            container.classList.remove('resting');
+            container.classList.add('chat-visible');
+          }
+          contextMenu.classList.remove('visible');
+        });
+      }
+
+      const followCursorBtn = contextMenu.querySelector('#menu-follow-cursor');
+      if (followCursorBtn) {
+        followCursorBtn.addEventListener('click', (e) => {
+          e.stopPropagation();
+          isFollowing = true;
+          container.classList.remove('resting');
+          container.classList.remove('chat-visible');
+          contextMenu.classList.remove('visible');
+        });
+      }
+
+      const hideFigpalBtn = contextMenu.querySelector('#menu-hide-figpal');
+      if (hideFigpalBtn) {
+        hideFigpalBtn.addEventListener('click', (e) => {
+          e.stopPropagation();
+          container.style.display = 'none';
+          contextMenu.classList.remove('visible');
+          // Store preference
+          localStorage.setItem('figpal-hidden', 'true');
         });
       }
 

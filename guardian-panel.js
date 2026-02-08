@@ -412,7 +412,9 @@ function initGuardian() {
 
     resizeHandle.classList.add('active');
     document.body.style.cursor = 'row-resize';
-    e.preventDefault(); // Prevent text selection
+    document.body.style.userSelect = 'none'; // Prevent text selection during resize
+    resizeHandle.setPointerCapture(e.pointerId); // Capture pointer to ensure mouseup fires
+    e.preventDefault();
   });
 
   document.addEventListener('mousemove', (e) => {
@@ -433,11 +435,15 @@ function initGuardian() {
     }
   });
 
-  document.addEventListener('mouseup', () => {
+  document.addEventListener('mouseup', (e) => {
     if (isResizing) {
       isResizing = false;
       resizeHandle.classList.remove('active');
       document.body.style.cursor = '';
+      document.body.style.userSelect = ''; // Re-enable text selection
+      if (resizeHandle.hasPointerCapture && resizeHandle.hasPointerCapture(e.pointerId)) {
+        resizeHandle.releasePointerCapture(e.pointerId);
+      }
     }
   });
 }
