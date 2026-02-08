@@ -437,6 +437,16 @@ function initGuardian() {
   let isResizing = false;
   let startY, startX, startHeight, startWidth;
 
+  const stopResize = () => {
+    if (isResizing) {
+      isResizing = false;
+      resizeHandle.classList.remove('active');
+      document.body.style.cursor = '';
+      document.body.style.userSelect = '';
+      document.body.classList.remove('guardian-resizing');
+    }
+  };
+
   resizeHandle.addEventListener('mousedown', (e) => {
     isResizing = true;
     startY = e.clientY;
@@ -449,53 +459,38 @@ function initGuardian() {
     startWidth = parseInt(currentWidthStr) || 400;
 
     resizeHandle.classList.add('active');
+    document.body.classList.add('guardian-resizing');
     document.body.style.cursor = isDockedRight ? 'col-resize' : 'row-resize';
     document.body.style.userSelect = 'none';
-    resizeHandle.setPointerCapture(e.pointerId);
     e.preventDefault();
+    e.stopPropagation();
   });
 
-  document.addEventListener('mousemove', (e) => {
+  // Use window events for reliable capture even over iframes
+  window.addEventListener('mousemove', (e) => {
     if (!isResizing) return;
 
     if (isDockedRight) {
-      // Horizontal resize for right dock mode
-      const dx = startX - e.clientX; // Drag left increases width
+      const dx = startX - e.clientX;
       let newWidth = startWidth + dx;
-
-      // Constraints
       if (newWidth < 300) newWidth = 300;
       if (newWidth > window.innerWidth - 200) newWidth = window.innerWidth - 200;
-
       document.documentElement.style.setProperty('--guardian-panel-width', `${newWidth}px`);
     } else {
-      // Vertical resize for bottom dock mode
       const dy = startY - e.clientY;
       let newHeight = startHeight + dy;
-
       if (newHeight < 200) newHeight = 200;
       if (newHeight > window.innerHeight - 100) newHeight = window.innerHeight - 100;
-
       document.documentElement.style.setProperty('--guardian-panel-height', `${newHeight}px`);
-
-      // Dispatch resize event
       if (isActive) {
         window.dispatchEvent(new CustomEvent('guardian-panel-resize', { detail: { height: newHeight, isActive: true } }));
       }
     }
   });
 
-  document.addEventListener('mouseup', (e) => {
-    if (isResizing) {
-      isResizing = false;
-      resizeHandle.classList.remove('active');
-      document.body.style.cursor = '';
-      document.body.style.userSelect = '';
-      if (resizeHandle.hasPointerCapture && resizeHandle.hasPointerCapture(e.pointerId)) {
-        resizeHandle.releasePointerCapture(e.pointerId);
-      }
-    }
-  });
+  window.addEventListener('mouseup', stopResize);
+  window.addEventListener('mouseleave', stopResize);
+  window.addEventListener('blur', stopResize);
 }
 
 // Check for Figma load

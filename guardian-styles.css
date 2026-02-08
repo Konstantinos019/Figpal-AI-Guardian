@@ -60,6 +60,13 @@ body.guardian-active #guardian-bottom-panel {
     background: rgba(0, 0, 0, 0.05);
 }
 
+/* Force cursor during resize to prevent sticking */
+body.guardian-resizing,
+body.guardian-resizing * {
+    cursor: inherit !important;
+    user-select: none !important;
+}
+
 /* 3. Tabs Section (Node 352:330) */
 .guardian-tabs-header {
     height: var(--guardian-tabs-height);
