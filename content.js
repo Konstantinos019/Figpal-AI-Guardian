@@ -991,6 +991,57 @@
         }
       });
 
+      // Visibility Logic: Hide FigPal when Panel is active
+      window.addEventListener('guardian-panel-resize', (e) => {
+        if (e.detail.isActive) {
+          container.classList.add('hidden-by-panel');
+        } else {
+          container.classList.remove('hidden-by-panel');
+        }
+      });
+
+      // Context Menu Logic
+      const contextMenu = document.createElement('div');
+      contextMenu.id = 'figpal-context-menu';
+      contextMenu.innerHTML = `
+        <div class="figpal-menu-item" id="menu-open-panel">
+           <span>🛡️</span> Open Guardian Panel
+        </div>
+      `;
+      document.body.appendChild(contextMenu);
+
+      follower.addEventListener('contextmenu', (e) => {
+        // Only show if resting or chat is visible
+        if (container.classList.contains('resting') || container.classList.contains('chat-visible')) {
+          e.preventDefault();
+          e.stopPropagation();
+
+          const x = e.clientX;
+          const y = e.clientY;
+
+          contextMenu.style.left = `${x}px`;
+          contextMenu.style.top = `${y}px`;
+          contextMenu.classList.add('visible');
+        }
+      });
+
+      // Close menu on click elsewhere
+      window.addEventListener('click', (e) => {
+        if (!e.target.closest('#figpal-context-menu')) {
+          contextMenu.classList.remove('visible');
+        }
+      });
+
+      // Menu Actions
+      const openPanelBtn = contextMenu.querySelector('#menu-open-panel');
+      if (openPanelBtn) {
+        openPanelBtn.addEventListener('click', (e) => {
+          e.stopPropagation();
+          window.dispatchEvent(new Event('guardian-panel-open'));
+          contextMenu.classList.remove('visible');
+        });
+      }
+
       console.log('DS Guardian: Loaded successfully!');
     }
   }

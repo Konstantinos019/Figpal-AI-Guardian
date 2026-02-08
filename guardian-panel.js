@@ -297,6 +297,11 @@ function initGuardian() {
 
   document.body.appendChild(panel);
 
+  // Listen for open command from other components
+  window.addEventListener('guardian-panel-open', () => {
+    if (!isActive) togglePanel(true);
+  });
+
   // 2. Launcher button
   const launcher = document.createElement('button');
   launcher.id = 'guardian-launcher-btn';
@@ -453,9 +458,19 @@ function waitForFigma() {
   }
 }
 
+// Ensure initGuardian includes the listener
+// Note: We are not changing initGuardian definition here, just ensuring where it is called is clean.
+// The listener needs to be INSIDE initGuardian function at the top of the file, around line 440? No.
+// initGuardian is defined around line 261. 
+// We need to edit initGuardian function body.
+
+
 // Run check
 if (document.readyState === 'loading') {
   document.addEventListener('DOMContentLoaded', waitForFigma);
 } else {
   waitForFigma();
 }
+
+// Listen globally for open command
+

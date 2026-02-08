@@ -439,6 +439,7 @@
 #save-keys-btn:hover {
   background: #007ACC;
 }
+
 /* Model Selector */
 #figpal-model-selector {
   margin-left: auto;
@@ -466,6 +467,7 @@
   display: flex;
   gap: 8px;
 }
+
 .figpal-chat-btn {
   background: #F0F0F0;
   border: 1px solid #DDD;
@@ -477,15 +479,18 @@
   transition: background 0.1s;
   font-family: inherit;
 }
+
 .figpal-chat-btn.primary {
   background: #0D99FF;
   color: white;
   border-color: #0D99FF;
   font-weight: 500;
 }
+
 .figpal-chat-btn:hover {
   filter: brightness(0.95);
 }
+
 .figpal-chat-btn.primary:hover {
   background: #007BE5;
 }
@@ -567,8 +572,15 @@
 }
 
 /* Specific Chip Colors */
-.figpal-chip.type-component { background: rgba(123, 97, 255, 0.1); border-color: rgba(123, 97, 255, 0.2); color: #5B48D9; }
-.figpal-chip.type-instance { color: #7B61FF; }
+.figpal-chip.type-component {
+  background: rgba(123, 97, 255, 0.1);
+  border-color: rgba(123, 97, 255, 0.2);
+  color: #5B48D9;
+}
+
+.figpal-chip.type-instance {
+  color: #7B61FF;
+}
 
 /* Action Cards */
 .figpal-action-card {
@@ -622,12 +634,14 @@
 }
 
 .figpal-chat-input-area input {
-  padding-right: 48px; /* Room for button */
+  padding-right: 48px;
+  /* Room for button */
 }
 
 #figpal-stop-btn {
   position: absolute;
-  right: 24px; /* 16px container padding + spacing */
+  right: 24px;
+  /* 16px container padding + spacing */
   top: 50%;
   transform: translateY(-50%);
   width: 28px;
@@ -652,4 +666,70 @@
   width: 12px;
   height: 12px;
   fill: white;
+}
+
+
+/* Context Menu - Figma Style */
+#figpal-context-menu {
+  position: fixed;
+  z-index: 100010;
+  background: #222222;
+  /* Figma Dark Grey */
+  border: 1px solid #000000;
+  box-shadow: 0px 5px 15px rgba(0, 0, 0, 0.4);
+  border-radius: 6px;
+  padding: 4px 0;
+  min-width: 200px;
+  display: none;
+  flex-direction: column;
+  font-family: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  user-select: none;
+}
+
+
+
+#figpal-context-menu.visible {
+  display: flex;
+}
+
+.figpal-menu-item {
+  padding: 6px 12px;
+  font-size: 13px;
+  color: #FFFFFF;
+  cursor: default;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  height: 32px;
+  box-sizing: border-box;
+}
+
+.figpal-menu-item:hover {
+  background: #18A0FB;
+  /* Figma Blue */
+}
+
+/* Icon style in menu */
+.figpal-menu-item span {
+  font-size: 14px;
+  opacity: 0.8;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(-2px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Visibility Toggle Class */
+#figpal-container.hidden-by-panel {
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.2s ease;
 }
