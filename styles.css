@@ -383,3 +383,273 @@
   height: 10px;
   cursor: nwse-resize;
 }
+
+/* Setup Box (Inline in Chat) */
+.figpal-setup-box {
+  margin-top: 10px;
+  padding: 16px;
+  background: #F9F9F9;
+  border: 1px solid #EEE;
+  border-radius: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.figpal-setup-item {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.figpal-setup-item label {
+  font-size: 10px;
+  font-weight: 700;
+  color: #888;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.figpal-setup-item input {
+  padding: 8px 12px;
+  border: 1px solid #E5E5E5;
+  border-radius: 6px;
+  font-size: 13px;
+  outline: none;
+  transition: border-color 0.2s;
+  background: white;
+}
+
+.figpal-setup-item input:focus {
+  border-color: #0D99FF;
+}
+
+#save-keys-btn {
+  padding: 10px;
+  background: #0D99FF;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  font-weight: 600;
+  font-size: 14px;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+#save-keys-btn:hover {
+  background: #007ACC;
+}
+/* Model Selector */
+#figpal-model-selector {
+  margin-left: auto;
+  margin-right: 12px;
+  font-size: 11px;
+  padding: 4px 8px;
+  border-radius: 6px;
+  border: 1px solid #E5E5E5;
+  background-color: #FFFFFF;
+  color: #333;
+  cursor: pointer;
+  outline: none;
+  font-family: inherit;
+  max-width: 140px;
+}
+
+#figpal-model-selector:hover {
+  border-color: #CCC;
+  background-color: #FAFAFA;
+}
+
+/* Warning Context Actions */
+.figpal-warning-actions {
+  margin-top: 10px;
+  display: flex;
+  gap: 8px;
+}
+.figpal-chat-btn {
+  background: #F0F0F0;
+  border: 1px solid #DDD;
+  padding: 6px 12px;
+  border-radius: 6px;
+  font-size: 11px;
+  cursor: pointer;
+  color: #333;
+  transition: background 0.1s;
+  font-family: inherit;
+}
+.figpal-chat-btn.primary {
+  background: #0D99FF;
+  color: white;
+  border-color: #0D99FF;
+  font-weight: 500;
+}
+.figpal-chat-btn:hover {
+  filter: brightness(0.95);
+}
+.figpal-chat-btn.primary:hover {
+  background: #007BE5;
+}
+
+/* Markdown Styles */
+.figpal-message h1,
+.figpal-message h2,
+.figpal-message h3 {
+  margin: 8px 0 4px 0;
+  font-size: 14px;
+  font-weight: 700;
+  line-height: 1.3;
+}
+
+.figpal-message p {
+  margin-bottom: 8px;
+}
+
+.figpal-message ul {
+  margin: 4px 0 8px 16px;
+  padding: 0;
+  list-style-type: disc;
+}
+
+.figpal-message li {
+  margin-bottom: 2px;
+}
+
+.figpal-message code {
+  background: rgba(0, 0, 0, 0.06);
+  padding: 2px 4px;
+  border-radius: 4px;
+  font-family: monospace;
+  font-size: 12px;
+}
+
+.figpal-message pre {
+  background: #F5F5F5;
+  padding: 8px;
+  border-radius: 6px;
+  overflow-x: auto;
+  margin: 8px 0;
+  border: 1px solid #E5E5E5;
+}
+
+.figpal-message pre code {
+  background: none;
+  padding: 0;
+  border-radius: 0;
+  color: #333;
+  font-size: 11px;
+}
+
+.figpal-message strong {
+  font-weight: 700;
+  color: #000;
+}
+
+/* Rich UI Components */
+.figpal-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 6px;
+  border-radius: 4px;
+  background: rgba(0, 0, 0, 0.04);
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  font-size: 11px;
+  font-weight: 500;
+  vertical-align: middle;
+  color: #333;
+  margin: 0 2px;
+}
+
+.figpal-chip svg {
+  width: 12px;
+  height: 12px;
+  flex-shrink: 0;
+}
+
+/* Specific Chip Colors */
+.figpal-chip.type-component { background: rgba(123, 97, 255, 0.1); border-color: rgba(123, 97, 255, 0.2); color: #5B48D9; }
+.figpal-chip.type-instance { color: #7B61FF; }
+
+/* Action Cards */
+.figpal-action-card {
+  margin: 8px 0;
+  padding: 12px;
+  background: #FFFFFF;
+  border: 1px solid #E5E5E5;
+  border-radius: 8px;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+}
+
+.figpal-action-card .action-title {
+  font-weight: 600;
+  font-size: 12px;
+  color: #000;
+  margin-bottom: 4px;
+}
+
+.figpal-action-card .action-desc {
+  font-size: 11px;
+  color: #555;
+  margin-bottom: 8px;
+  line-height: 1.4;
+}
+
+.figpal-action-btn {
+  background: #0D99FF;
+  color: white;
+  border: none;
+  padding: 6px 12px;
+  border-radius: 6px;
+  font-size: 11px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+  width: 100%;
+}
+
+.figpal-action-btn:hover {
+  background: #007BE5;
+}
+
+.figpal-action-btn:disabled {
+  background: #CCC;
+  cursor: default;
+}
+
+/* Stop Generation Button */
+.figpal-chat-input-area {
+  position: relative;
+}
+
+.figpal-chat-input-area input {
+  padding-right: 48px; /* Room for button */
+}
+
+#figpal-stop-btn {
+  position: absolute;
+  right: 24px; /* 16px container padding + spacing */
+  top: 50%;
+  transform: translateY(-50%);
+  width: 28px;
+  height: 28px;
+  border: none;
+  background: #FF3B30;
+  border-radius: 6px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s;
+  padding: 0;
+  z-index: 10;
+}
+
+#figpal-stop-btn:hover {
+  background: #D63329;
+}
+
+#figpal-stop-btn svg {
+  width: 12px;
+  height: 12px;
+  fill: white;
+}
