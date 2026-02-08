@@ -749,7 +749,10 @@
       setupInputListeners();
 
       let mouseX = 0, mouseY = 0, currentX = 0, currentY = 0;
-      const speed = 0.12;
+      let ghostX = 0, ghostY = 0;
+      const ghostSpeed = 0.15;
+      const followSpeed = 0.10;
+
       let isFollowing = false;
       let isReturningHome = false; // New flag for "Stay Put" logic
       container.classList.add('resting');
@@ -769,6 +772,9 @@
           isFollowing = true;
           isReturningHome = false;
           container.classList.remove('resting');
+          // Ghost starts at current position
+          ghostX = currentX;
+          ghostY = currentY;
         } else {
           // Toggle chat but STAY PUT
           isFollowing = false;
@@ -786,36 +792,58 @@
         const restingX = window.innerWidth / 2 + 180;
         const restingY = window.innerHeight - 80;
 
+        let targetX = currentX;
+        let targetY = currentY;
+        let activePhysics = false;
+
         if (isFollowing && !container.classList.contains('chat-visible')) {
           // Follow cursor
-          // Apply the 28px offset directly in the target calculation 
-          currentX += (mouseX + 28 - currentX) * speed;
-          currentY += (mouseY + 28 - currentY) * speed;
-          container.style.left = currentX + 'px';
-          container.style.top = currentY + 'px';
-          container.style.transform = '';
+          targetX = mouseX + 28;
+          targetY = mouseY + 28;
+          activePhysics = true;
         } else if (isReturningHome && !container.classList.contains('resting')) {
           // Return Home
-          currentX += (restingX - currentX) * speed;
-          currentY += (restingY - currentY) * speed;
-          container.style.left = currentX + 'px';
-          container.style.top = currentY + 'px';
-          container.style.transform = '';
+          targetX = restingX;
+          targetY = restingY;
+          activePhysics = true;
 
+          // Check arrival (position)
           if (Math.abs(currentX - restingX) < 1 && Math.abs(currentY - restingY) < 1) {
             container.classList.add('resting');
             isReturningHome = false;
+            activePhysics = false;
+            currentX = restingX;
+            currentY = restingY;
           }
-        } else if (!container.classList.contains('resting')) {
-          // Stays Put (Floating)
-          // currentX/Y remain as they are or are updated by drag
-          container.style.left = currentX + 'px';
-          container.style.top = currentY + 'px';
-        } else {
-          // Resting
+        } else if (container.classList.contains('resting')) {
           currentX = restingX;
           currentY = restingY;
+          // Reset ghost to home
+          ghostX = restingX;
+          ghostY = restingY;
         }
+
+        if (activePhysics && !isDraggingChat) {
+          // Double Lerp (Ghost Follows Target, Current Follows Ghost)
+          ghostX += (targetX - ghostX) * ghostSpeed;
+          ghostY += (targetY - ghostY) * ghostSpeed;
+
+          currentX += (ghostX - currentX) * followSpeed;
+          currentY += (ghostY - currentY) * followSpeed;
+
+          container.style.left = currentX + 'px';
+          container.style.top = currentY + 'px';
+          container.style.transform = '';
+        } else if (!container.classList.contains('resting') && !activePhysics) {
+          // But ensure we reflect currentX in style if not resting
+          if (!isDraggingChat) {
+            // Maybe drift to stop if we were moving?
+            // For now, simple stop.
+            container.style.left = currentX + 'px';
+            container.style.top = currentY + 'px';
+          }
+        }
+
         requestAnimationFrame(animate);
       }
 
