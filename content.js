@@ -3,7 +3,7 @@
 
   // 🥚 Easter Egg: Special frame names that trigger fun messages
   const EASTER_EGG_FRAMES = {
-    "Button - let's start mock flow": "What a cool button, but did you know that it has some diffs? 🔮"
+    "myCoolButton": "What a cool button, but did you know that it has some diffs? 🔮"
   };
 
   // Track which Easter eggs have been shown in this session to avoid spam
@@ -25,6 +25,12 @@
     }
 
     try {
+      // Safety check: ensure chrome.storage is available
+      if (!chrome || !chrome.storage || !chrome.storage.local) {
+        console.log('🥚 Skipping: chrome.storage not available');
+        return;
+      }
+
       const storage = await chrome.storage.local.get(['figmaPat']);
       if (!storage.figmaPat) {
         console.log('🥚 Skipping: no Figma PAT found');
@@ -739,6 +745,14 @@
 
               if (window.figpalFileKey && window.figpalSelectedNodeId && result.figmaPat) {
                 nodeContext = await fetchFigmaNode(window.figpalFileKey, window.figpalSelectedNodeId, result.figmaPat);
+
+                // 🥚 Easter Egg: Check if selected node triggers a fun message
+                if (nodeContext && nodeContext.document) {
+                  const nodeName = nodeContext.document.name;
+                  if (EASTER_EGG_FRAMES[nodeName]) {
+                    triggerEasterEggMessage(EASTER_EGG_FRAMES[nodeName]);
+                  }
+                }
               }
 
               // Context Size Warning
