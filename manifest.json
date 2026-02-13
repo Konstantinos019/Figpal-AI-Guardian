@@ -22,6 +22,7 @@
       "js": [
         "modules/core/event-bus.js",
         "modules/chat/renderer.js",
+        "modules/ai/tracker.js",
         "modules/ai/client.js",
         "modules/ai/system-prompt.js",
         "modules/figma/data.js",

@@ -23,9 +23,10 @@
         try {
             // 4. Get Figma context (Plugin Proactive → Plugin Request → REST Fallback)
             let context = null;
-            console.log('FigPal Flow: Starting context acquisition cycle...');
+            const isConnected = !!(FP.pluginBridge && FP.pluginBridge.isConnected);
+            console.log('FigPal Flow: Starting context acquisition cycle... (Connected:', isConnected, ')');
 
-            if (FP.pluginBridge && FP.pluginBridge.isConnected) {
+            if (isConnected) {
                 try {
                     console.log('FigPal Flow: Requesting fresh selection fetch from Bridge...');
                     context = await FP.pluginBridge.getSelection();
@@ -66,16 +67,52 @@
                 }
             }
 
+            // ⚠️ If all context sources failed, interrupt and ask nicely
+            if (!context && isConnected) {
+                // Plugin is "connected" but returned nothing? Weird, but okay.
+                console.warn('FigPal Flow: Connected but context empty.');
+            } else if (!context && !isConnected && !FP.state.fileKey) {
+                // Total failure to see anything
+                FP.chat.appendMessage('assistant',
+                    `I can't see the canvas! 🙈 \n\nPlease launch the **FigPal Plugin** in Figma so I can see what you're working on.`,
+                    [{ label: 'How to Launch? 🚀', action: 'help:launch_plugin' }]
+                );
+                return; // STOP here.
+            }
+
             // 5. Final check
             if (!context) {
-                console.warn('FigPal Flow: 🔴 ALL context acquisition stages failed. Using empty context.');
+                // If we got here, we are proceeding with empty context (e.g. general questions)
+                // But if isConnected was true, we likely have a different issue.
+                if (isConnected) console.warn('FigPal Flow: Proceeding with empty context despite connection.');
             }
 
             // 6. Build prompt and call AI
             console.log('FigPal Flow: Building prompt with context:', !!context);
-            const isConnected = !!(FP.pluginBridge && FP.pluginBridge.isConnected);
-            const prompt = FP.ai.buildPrompt(text, context, FP.state.chatHistory, isConnected);
-            const response = specificResponse || await FP.ai.sendToAI(prompt);
+            // isConnected is already defined above
+            let response;
+
+            if (specificResponse) {
+                response = specificResponse;
+            } else if (isConnected) {
+                // ─── NEW BRAIN PATH (Plugin) ───
+                console.log('FigPal Flow: engaging Plugin Brain pathway...');
+                const systemPrompt = FP.ai.getSystemPrompt(true);
+                const userMessage = FP.ai.augmentUserQuery(text, context);
+
+                // Send structured object to client.js -> plugin-bridge -> code.js
+                response = await FP.ai.sendToAI({
+                    isConnected: true,
+                    systemPrompt: systemPrompt,
+                    history: FP.state.chatHistory, // Pass raw history array
+                    text: userMessage
+                });
+            } else {
+                // ─── LEGACY PATH (Fetch) ───
+                console.log('FigPal Flow: engaging Legacy Fetch pathway...');
+                const prompt = FP.ai.buildPrompt(text, context, FP.state.chatHistory, false);
+                response = await FP.ai.sendToAI(prompt);
+            }
 
             // 7. Render response
             if (msgDiv) {

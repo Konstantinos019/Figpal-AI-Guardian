@@ -154,10 +154,56 @@ Suggest they: "Launch the DS Guardian plugin in Figma to enable direct canvas ac
 
         prompt += `\n\nUser: ${userText}`;
         return prompt;
+        return prompt;
+    }
+
+    function getSystemPrompt(isConnected) {
+        let systemPrompt = BASE_PROMPT;
+
+        if (!isConnected) {
+            systemPrompt += `\n**CRITICAL**: The Companion Figma Plugin is NOT running or not connected. 
+If the user asks about the selection, what you see, or to perform a fix, you MUST politely explain that you can't see the canvas because the plugin isn't active. 
+Suggest they: "Launch the DS Guardian plugin in Figma to enable direct canvas access."`;
+        }
+
+        // Add learned skills
+        if (FP.state.skills && FP.state.skills.length > 0) {
+            systemPrompt += '\n\n### 📚 LEARNED KNOWLEDGE (SKILLS):\n' +
+                FP.state.skills.map((s, i) => `${i + 1}. ${s}`).join('\n');
+        }
+
+        return systemPrompt;
+    }
+
+    function augmentUserQuery(userText, context) {
+        let finalUserText = userText;
+
+        // Add Templates if triggered
+        const comparisonKeywords = ['compare', 'compliance', 'check', 'drift', 'vs'];
+        if (comparisonKeywords.some(kw => userText.toLowerCase().includes(kw))) {
+            finalUserText += '\n\n' + COMPARISON_TEMPLATE;
+        }
+
+        if (userText.toLowerCase().includes('audit')) {
+            finalUserText += '\n\n' + AUDIT_PROMPT;
+        }
+
+        // Add Context
+        if (context) {
+            const contextStr = typeof context === 'string' ? context : JSON.stringify(context, null, 2);
+            const truncated = contextStr.length > 50000
+                ? contextStr.substring(0, 50000) + '\n... [truncated]'
+                : contextStr;
+            finalUserText += `\n\n### 🔴 LIVE FIGMA CONTEXT:\n\`\`\`json\n${truncated}\n\`\`\``;
+        }
+
+        return finalUserText;
     }
 
     // ─── Export ──────────────────────────────────────────────────────────
     FP.ai = FP.ai || {};
     FP.ai.buildPrompt = buildPrompt;
+    FP.ai.getSystemPrompt = getSystemPrompt;
+    FP.ai.augmentUserQuery = augmentUserQuery;
     FP.ai.BASE_PROMPT = BASE_PROMPT;
 })();

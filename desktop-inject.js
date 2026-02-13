@@ -1,5 +1,42 @@
 (function () {
   const css = `
+/* Auth Modal */
+#figpal-auth-modal {
+  position: absolute;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background: rgba(255,255,255,0.95);
+  border-radius: 16px;
+  z-index: 2000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  backdrop-filter: blur(5px);
+}
+.figpal-auth-content {
+  width: 80%;
+  max-width: 300px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.figpal-auth-content h3 { margin: 0; font-size: 18px; color: #333; }
+.figpal-auth-content p { margin: 0; font-size: 13px; color: #666; margin-bottom: 8px; }
+.figpal-auth-content label { font-size: 11px; font-weight: 600; text-transform: uppercase; color: #888; }
+.figpal-auth-content input, .figpal-auth-content select {
+  padding: 10px; border: 1px solid #ddd; border-radius: 6px; font-size: 14px;
+}
+#figpal-auth-save {
+  margin-top: 8px;
+  padding: 10px;
+  background: #0D99FF;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  font-weight: 600;
+  cursor: pointer;
+}
+#figpal-auth-save:hover { background: #007BE5; }
+
 /* Container handling positioning */
 #figpal-container {
   position: fixed;
@@ -298,7 +335,29 @@
         <div class="figpal-resizer top"></div><div class="figpal-resizer top-left"></div><div class="figpal-resizer top-right"></div>
         <div class="figpal-resizer left"></div><div class="figpal-resizer right"></div>
         <div class="figpal-resizer bottom-left"></div><div class="figpal-resizer bottom-right"></div>
-      `;
+        <div class="figpal-resizer bottom-right"></div>
+      
+      <!-- Auth Modal -->
+      <div id="figpal-auth-modal" style="display: none;">
+        <div class="figpal-auth-content">
+            <h3>Connect Brain 🧠</h3>
+            <p>The plugin needs your API Key to think.</p>
+            
+            <label>Provider</label>
+            <select id="figpal-auth-provider">
+                <option value="openai">OpenAI</option>
+                <option value="anthropic">Anthropic (Claude)</option>
+                <option value="gemini">Google Gemini</option>
+                <option value="xai">xAI (Grok)</option>
+            </select>
+            
+            <label>API Key</label>
+            <input type="password" id="figpal-auth-key" placeholder="sk-..." />
+            
+            <button id="figpal-auth-save">Connect</button>
+        </div>
+      </div>
+    `;
 
       document.body.appendChild(container);
       document.body.appendChild(home);

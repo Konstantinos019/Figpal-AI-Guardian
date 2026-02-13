@@ -61,6 +61,12 @@
                     console.log('FigPal Bridge: Captured selection change', nodes.length, 'nodes');
 
                     FP.emit('selection-updated', selectionData);
+                } else if (msg.type === 'request-credentials') {
+                    console.log('FigPal Bridge: Plugin requested credentials.');
+                    FP.emit('credentials-requested');
+                } else if (msg.type === 'auth-success') {
+                    console.log('FigPal Bridge: Plugin authenticated.');
+                    FP.emit('auth-success');
                 }
             });
 
@@ -148,9 +154,9 @@
                 setTimeout(() => {
                     if (this.pendingRequests.has(id)) {
                         this.pendingRequests.delete(id);
-                        resolve(null);
+                        resolve({ error: 'Request timed out' }); // Return error object instead of null for better debugging
                     }
-                }, 3000);
+                }, 30000); // 30s timeout for AI/Image ops
             });
         },
 
@@ -167,6 +173,15 @@
         async updateNode(nodeId, updates) {
             if (!this.isConnected) return { success: false, error: 'Plugin not connected' };
             return this.request('update-node', { nodeId, updates });
+        },
+
+        sendCredentials(credentials) {
+            // credentials: { apiKey, provider, model }
+            this.sendToPlugin({
+                source: 'figpal-extension',
+                type: 'set-credentials',
+                data: credentials
+            });
         }
     };
 

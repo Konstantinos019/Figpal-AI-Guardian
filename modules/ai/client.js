@@ -96,6 +96,52 @@
         if (!cfg) return 'Unknown AI provider: ' + provider;
         if (!apiKey) return `Please set your API key for **${cfg.name}** via \`/connect\`. ⚙️`;
 
+        if (!cfg) return 'Unknown AI provider: ' + provider;
+
+        // ─── PLUGIN BRAIN PATH ───────────────────────────────────────────────
+        if (typeof prompt === 'object' && prompt.isConnected) {
+            console.log('FigPal AI: Routing to Plugin Brain 🧠');
+            try {
+                // We need to pass the provider/model choice too
+                const payload = {
+                    ...prompt,
+                    provider: provider,
+                    model: selectedModel || cfg.models[0],
+                    apiKey: apiKey // Optional, plugin might have its own
+                };
+
+                const result = await FP.pluginBridge.request('ai-request', payload);
+
+                if (result.error) {
+                    throw new Error(result.error);
+                }
+
+                const responseText = result.text || "";
+
+                // Detection for 429 from Plugin Brain (propagated error text)
+                if (responseText.includes('Error 429') || responseText.includes('Quota Exceeded')) {
+                    const tracker = FP.ai.tracker;
+                    if (tracker) {
+                        return `### 🛑 Quota Exceeded\n\nYou've hit the provider's rate limits.\n\n${tracker.formatUsageMarkdown('Current Usage Estimates')}\n\n*Please wait a minute for stats to reset.*`;
+                    }
+                }
+
+                // Track successful usage
+                if (FP.ai.tracker && !responseText.startsWith('Error:')) {
+                    const estimatedTokens = (JSON.stringify(prompt).length + responseText.length) / 4;
+                    FP.ai.tracker.trackRequest(estimatedTokens);
+                }
+
+                return responseText || "No text returned from Brain.";
+            } catch (e) {
+                console.error('FigPal AI: Plugin Brain failed', e);
+                return `Plugin Brain Error: ${e.message}`;
+            }
+        }
+
+        // ─── LEGACY FETCH PATH ───────────────────────────────────────────────
+        if (!apiKey) return `Please set your API key for **${cfg.name}** via \`/connect\`. ⚙️`;
+
         // Abort any in-flight request
         if (FP.state.currentController) FP.state.currentController.abort();
         FP.state.currentController = new AbortController();
@@ -124,8 +170,33 @@
 
                 if (response.ok) {
                     const data = await response.json();
+
+                    // Track successful usage (estimate tokens based on chars / 4)
+                    if (FP.ai.tracker) {
+                        const estimatedTokens = (JSON.stringify(prompt).length + JSON.stringify(data).length) / 4;
+                        FP.ai.tracker.trackRequest(estimatedTokens);
+                    }
+
                     const text = cfg.parseResponse(data);
                     if (text) return text;
+                } else if (response.status === 429) {
+                    const tracker = FP.ai.tracker;
+                    if (tracker) {
+                        // Count this attempt (it consumed a request slot)
+                        tracker.trackRequest(0);
+
+                        const stats = tracker.getUsage();
+                        const isLow = (stats.rpm < 5) && (stats.rpd < 100); // Check if local counts match typical server limits
+
+                        let mismatchMsg = "";
+                        if (isLow) {
+                            mismatchMsg = `\n\n> ⚠️ **Note:** Your local counters are low, but Google's server blocked the request. This usually happens if:\n> - You used the API on another device/tab\n> - You recently reloaded the extension (resetting local stats)`;
+                        }
+
+                        return `### 🛑 Quota Exceeded\n\nYou've hit the provider's rate limits.\n\n${tracker.formatUsageMarkdown('Current Usage Estimates')}${mismatchMsg}\n\n*Please wait a minute for stats to reset.*`;
+                    } else {
+                        return `### 🛑 Quota Exceeded\n\nYou've hit the AI provider's rate limits. Please wait a minute and try again.`;
+                    }
                 } else if (response.status === 404) {
                     console.warn(`FigPal AI: ${model} not found, trying next endpoint...`);
                     continue;

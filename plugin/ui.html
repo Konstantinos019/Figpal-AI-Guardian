@@ -189,8 +189,10 @@
                 }, 400);
             }
 
+
+            // 1. Handle Local UI Updates (Avatar, Stats)
             if (msg.type === 'response' || msg.type === 'selection-changed') {
-                const nodes = msg.data?.nodes || msg.data;
+                const nodes = msg.data?.nodes;
                 const image = msg.data?.image;
 
                 if (Array.isArray(nodes)) {
@@ -201,13 +203,15 @@
 
                 if (image && mainAvatar) {
                     mainAvatar.src = image;
-                } else if (mainAvatar) {
+                } else if (mainAvatar && !image) {
                     mainAvatar.src = DEFAULT_GHOST;
                 }
-
-                // Stream to extension (via window.top)
-                window.top.postMessage({ source: 'figpal-plugin', ...msg }, '*');
             }
+
+            // 2. Always Forward to Extension
+            // We must spread msg to preserve type, id, data
+            // This ensures 'ai-response', 'request-credentials', etc all get through
+            window.top.postMessage({ source: 'figpal-plugin', type: msg.type, id: msg.id, data: msg.data }, '*');
         };
     </script>
 </body>

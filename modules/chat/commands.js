@@ -28,6 +28,14 @@
             FP.chat.addMessage(`**Diagnosis:**\n- Provider: ${FP.state.provider}\n- Model: ${FP.state.selectedModel || 'Default'}\n- Bridge: ${isPlugin ? 'Connected ✅' : 'Disconnected ❌'}\n- Context: ${FP.state.selectedNodeId ? 'Node selected' : 'No selection'}`, 'bot');
         },
 
+        '/quota': function () {
+            if (FP.ai.tracker) {
+                FP.chat.addMessage(FP.ai.tracker.formatUsageMarkdown('Gemini Quota Tracker'), 'bot');
+            } else {
+                FP.chat.addMessage('⏳ Tracker initializing... try again in a moment.', 'bot');
+            }
+        },
+
         '/connect': function () {
             FP.setup.showSetupPrompt();
         },
