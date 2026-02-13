@@ -28,8 +28,8 @@
         });
 
         // 2. Action Cards: [[Action:Title]] ... [Btn1:Event1] [Btn2:Event2]
-        html = html.replace(/\[\[Action:([^\]]+)\]\]([\s\S]*?)((?:\[[^\]]+:[^\]]+\]\s*)+)/g, (match, title, desc, buttons) => {
-            const buttonHtml = buttons.replace(/\[([^\]]+?):([^\]]+)\]/g, (btnMatch, btnLabel, eventName) => {
+        html = html.replace(/\[\[Action:([^\]]+)\]\]([\s\S]*?)((?:\[[^\[\]]+:[^\]]+\]\s*)+)/g, (match, title, desc, buttons) => {
+            const buttonHtml = buttons.replace(/\[([^\[\]]+?):([^\]]+)\]/g, (btnMatch, btnLabel, eventName) => {
                 return `<button class="figpal-action-btn" data-event="${eventName.trim()}">${btnLabel.trim()}</button>`;
             });
 

@@ -63,16 +63,33 @@
 }
 
 /* Connection Status Indicators */
+/* REMOVED GLOW on follower per user request */
 #figpal-follower {
-  /* Default / Disconnected State */
-  filter: drop-shadow(0 0 4px rgba(255, 59, 48, 0.8));
-  /* Red Glow */
-  transition: filter 0.3s ease, transform 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+  transition: transform 0.4s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
-#figpal-follower.connected {
-  filter: drop-shadow(0 0 4px rgba(52, 199, 89, 0.8));
-  /* Green Glow */
+/* #figpal-follower.connected { } - Removed as no visual change is needed on follower */
+
+/* Status Dot in Header */
+.figpal-header-left {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.figpal-status-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background-color: #FF3B30;
+  /* Red (Disconnected) */
+  transition: background-color 0.3s ease;
+}
+
+.figpal-status-dot.connected {
+  background-color: #34C759;
+  /* Green (Connected) */
+  box-shadow: 0 0 4px rgba(52, 199, 89, 0.4);
 }
 
 /* When chat is visible, maybe remove the intense glow or keep it? */
