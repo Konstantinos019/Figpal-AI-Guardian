@@ -197,7 +197,8 @@
 
 /* Chat Header */
 .figpal-chat-header {
-  padding: 14px 17px;
+  padding: 11px 17px;
+  /* Matches Figma design */
   font-weight: 600;
   font-size: 16px;
   background: #F7F7F7;
@@ -208,22 +209,38 @@
   align-items: center;
 }
 
-.figpal-close-btn {
-  margin-left: auto;
-  background: none;
-  border: none;
-  font-size: 20px;
-  line-height: 1;
-  color: #888;
-  cursor: pointer;
-  padding: 0 4px;
-  border-radius: 4px;
-  transition: color 0.1s;
+.figpal-header-left span {
+  font-family: 'Inter', sans-serif;
+  font-weight: 600;
+  font-size: 16px;
+  color: #000000;
 }
 
-.figpal-close-btn:hover {
-  color: #333;
-  background: #EAEAEA;
+.figpal-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.figpal-header-btn {
+  background: transparent;
+  border: none;
+  padding: 4px;
+  cursor: pointer;
+  color: #000000;
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background-color 0.1s;
+}
+
+.figpal-header-btn:hover {
+  background-color: #E5E5E5;
+}
+
+.figpal-close-btn {
+  /* Inherits from figpal-header-btn now, legacy class kept for JS selector if needed */
 }
 
 /* Chat Content Area */
@@ -331,7 +348,8 @@
 
 /* Input Area */
 .figpal-chat-input-area {
-  padding: 16px;
+  padding: 16px 16px 6px 16px;
+  /* Reduced bottom padding for tighter grouping with footer */
   background: #FFFFFF;
   /* border-top removed in design, input has border */
 }
@@ -946,3 +964,70 @@
 }
 
 /* Connection Status Indicator */
+
+/* ─── Auth Modal ────────────────────────────────────────────────────── */
+#figpal-auth-modal {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(255, 255, 255, 0.95);
+  border-radius: 16px;
+  z-index: 2000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  backdrop-filter: blur(5px);
+}
+
+.figpal-auth-content {
+  width: 80%;
+  max-width: 300px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.figpal-auth-content h3 {
+  margin: 0;
+  font-size: 18px;
+  color: #333;
+}
+
+.figpal-auth-content p {
+  margin: 0;
+  font-size: 13px;
+  color: #666;
+  margin-bottom: 8px;
+}
+
+.figpal-auth-content label {
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  color: #888;
+}
+
+.figpal-auth-content input,
+.figpal-auth-content select {
+  padding: 10px;
+  border: 1px solid #ddd;
+  border-radius: 6px;
+  font-size: 14px;
+}
+
+#figpal-auth-save {
+  margin-top: 8px;
+  padding: 10px;
+  background: #0D99FF;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+#figpal-auth-save:hover {
+  background: #007BE5;
+}

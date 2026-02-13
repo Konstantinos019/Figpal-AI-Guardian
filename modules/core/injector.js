@@ -172,7 +172,18 @@
           <span>DS Guardian</span>
           <div id="figpal-connection-dot" class="figpal-status-dot" title="Bridge Status"></div>
         </div>
-        <button class="figpal-close-btn" aria-label="Close chat">×</button>
+        <div class="figpal-header-actions">
+           <button class="figpal-header-btn" id="figpal-dock-btn" title="Toggle Side Panel">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+                    <path fill-rule="evenodd" clip-rule="evenodd" d="M19 4H5C3.89543 4 3 4.89543 3 6V18C3 19.1046 3.89543 20 5 20H19C20.1046 20 21 19.1046 21 18V6C21 4.89543 20.1046 4 19 4ZM5 6H11V18H5V6ZM13 18V6H19V18H13Z"/>
+                </svg>
+           </button>
+           <button class="figpal-header-btn figpal-close-btn" aria-label="Close chat">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M18.3 5.71a.9959.9959 0 00-1.41 0L12 10.59 7.11 5.7A.9959.9959 0 005.7 7.11L10.59 12 5.7 16.89a.9959.9959 0 001.41 1.41L12 13.41l4.89 4.89a.9959.9959 0 001.41-1.41L13.41 12l4.89-4.89c.38-.38.38-1.02 0-1.4z"/>
+                </svg>
+           </button>
+        </div>
       </div>
       <div class="figpal-chat-content">
         <!-- Messages injected here by renderer.js -->
@@ -206,7 +217,29 @@
       <div class="figpal-resizer right"></div>
       <div class="figpal-resizer bottom-left"></div>
       <div class="figpal-resizer bottom-right"></div>
-    `;
+      <div class="figpal-resizer bottom-right"></div>
+      
+      <!-- Auth Modal -->
+            <div id="figpal-auth-modal" style="display: none;">
+                <div class="figpal-auth-content">
+                    <h3>Connect Brain 🧠</h3>
+                    <p>The plugin needs your API Key to think.</p>
+
+                    <label>Provider</label>
+                    <select id="figpal-auth-provider">
+                        <option value="openai">OpenAI</option>
+                        <option value="anthropic">Anthropic (Claude)</option>
+                        <option value="gemini">Google Gemini</option>
+                        <option value="xai">xAI (Grok)</option>
+                    </select>
+
+                    <label>API Key</label>
+                    <input type="password" id="figpal-auth-key" placeholder="sk-..." />
+
+                    <button id="figpal-auth-save">Connect</button>
+                </div>
+            </div>
+        `;
 
         // Assemble DOM
         document.body.appendChild(container);
@@ -223,6 +256,7 @@
         wireSendButton(chatBubble);
         wireStopButton(chatBubble, follower, defaultSprite);
         wireInputListeners(chatBubble);
+        wireAuthModal(container); // New functionality
 
         // ─── Bootstrap modules ───────────────────────────────────────────
         FP.setup.init();
@@ -332,7 +366,7 @@
 
         modelSelector.addEventListener('change', (e) => {
             FP.state.selectedModel = e.target.value;
-            console.log(`FigPal: Model changed to ${FP.state.selectedModel}`);
+            console.log(`FigPal: Model changed to ${FP.state.selectedModel} `);
             chrome.storage.local.set({ selectedModel: e.target.value });
             updateDisplay();
         });
@@ -398,6 +432,69 @@
         });
         chatInput.addEventListener('paste', (e) => e.stopPropagation());
         chatInput.addEventListener('contextmenu', (e) => e.stopPropagation());
+    }
+
+    function wireAuthModal(container) {
+        const modal = container.querySelector('#figpal-auth-modal');
+        const providerSelect = container.querySelector('#figpal-auth-provider');
+        const keyInput = container.querySelector('#figpal-auth-key');
+        const saveBtn = container.querySelector('#figpal-auth-save');
+
+        // 1. Listen for requests from Plugin
+        FP.on('credentials-requested', () => {
+            // Check if we have them in storage first
+            chrome.storage.local.get(['figpalApiKey', 'provider', 'model'], (res) => {
+                if (res.figpalApiKey) {
+                    // Auto-respond if we have it
+                    console.log('FigPal: Auto-sending stored credentials...');
+                    FP.pluginBridge.sendCredentials({
+                        apiKey: res.figpalApiKey,
+                        provider: res.provider || 'openai',
+                        model: res.model || 'gpt-4o'
+                    });
+                } else {
+                    // Show UI
+                    modal.style.display = 'flex';
+                    container.classList.add('chat-visible'); // Ensure visible
+                    keyInput.focus();
+                }
+            });
+        });
+
+        // 2. Handle Save
+        if (saveBtn) {
+            saveBtn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                const apiKey = keyInput.value.trim();
+                const provider = providerSelect.value;
+
+                if (!apiKey) {
+                    alert('Please enter an API Key');
+                    return;
+                }
+
+                // Save to storage
+                chrome.storage.local.set({
+                    figpalApiKey: apiKey,
+                    provider: provider
+                });
+
+                // Send to Plugin
+                FP.pluginBridge.sendCredentials({
+                    apiKey,
+                    provider,
+                    model: 'gpt-4o' // Default, allows changing later
+                });
+
+                // Hide Modal
+                modal.style.display = 'none';
+            });
+        }
+
+        // 3. Listen for success to hide modal if open
+        FP.on('auth-success', () => {
+            modal.style.display = 'none';
+        });
     }
 
     function toggleInputState(chatBubble, isThinking) {
