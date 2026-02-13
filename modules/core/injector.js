@@ -167,12 +167,11 @@
         const chatBubble = document.createElement('div');
         chatBubble.id = 'figpal-chat-bubble';
         chatBubble.innerHTML = `
-      <div class="figpal-chat-header">
+            <div class="figpal-chat-header">
         <div class="figpal-header-left">
           <span>DS Guardian</span>
           <div id="figpal-connection-dot" class="figpal-status-dot" title="Bridge Status"></div>
         </div>
-        <select id="figpal-model-selector" title="Change AI Model"></select>
         <button class="figpal-close-btn" aria-label="Close chat">×</button>
       </div>
       <div class="figpal-chat-content">
@@ -190,6 +189,15 @@
             <rect width="10" height="10" rx="2" fill="white"/>
           </svg>
         </button>
+      </div>
+      <div class="figpal-chat-footer">
+        <div class="figpal-model-pill">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor" style="transform: rotate(180deg);">
+               <path d="M7.41 15.41L12 10.83L16.59 15.41L18 14L12 8L6 14L7.41 15.41Z"/>
+            </svg>
+            <span id="figpal-model-name">Loading...</span>
+            <select id="figpal-model-selector" title="Change AI Model"></select>
+        </div>
       </div>
       <div class="figpal-resizer top"></div>
       <div class="figpal-resizer top-left"></div>
@@ -278,7 +286,14 @@
 
     function wireModelSelector(chatBubble) {
         const modelSelector = chatBubble.querySelector('#figpal-model-selector');
+        const modelNameDisplay = chatBubble.querySelector('#figpal-model-name');
         if (!modelSelector) return;
+
+        function updateDisplay() {
+            if (modelNameDisplay) {
+                modelNameDisplay.textContent = modelSelector.value;
+            }
+        }
 
         function populateModels() {
             const provider = FP.state.provider || 'gemini';
@@ -300,6 +315,7 @@
                 modelSelector.value = cfg.models[0];
                 FP.state.selectedModel = cfg.models[0];
             }
+            updateDisplay();
         }
 
         // Initialize
@@ -318,6 +334,7 @@
             FP.state.selectedModel = e.target.value;
             console.log(`FigPal: Model changed to ${FP.state.selectedModel}`);
             chrome.storage.local.set({ selectedModel: e.target.value });
+            updateDisplay();
         });
 
         // Refresh when provider changes (e.g., via /connect or setup)

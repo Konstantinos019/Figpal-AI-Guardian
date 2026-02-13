@@ -8,6 +8,7 @@
         isConnected: false,
         pluginWindow: null, // Store reference to talk back
         pendingRequests: new Map(),
+        lastHeartbeat: 0,
         requestId: 0,
 
         init() {
@@ -22,13 +23,20 @@
                     FP.emit('plugin-status', { connected: true });
                 }
 
+                // Always update heartbeat on ANY valid message from plugin
+                this.lastHeartbeat = Date.now();
+
                 // Capture the plugin's window reference to send messages back
                 if (event.source && event.source !== window && !this.pluginWindow) {
                     this.pluginWindow = event.source;
-                    console.log('FigPal Bridge: Latched onto plugin source.');
+                    // Only log latching once to avoid spam
+                    // console.log('FigPal Bridge: Latched onto plugin source.');
                 }
 
-                if (msg.type === 'plugin-ready') {
+                if (msg.type === 'pong') {
+                    // Just a heartbeat response, logic above handled timestamp update
+                    return;
+                } else if (msg.type === 'plugin-ready') {
                     this.isConnected = true;
                     console.log('FigPal Bridge: Plugin signaled ready.');
                     this.sendHandshake();
@@ -56,12 +64,29 @@
                 }
             });
 
-            // Proactive handshake attempt
+            // Proactive handshake attempt & Heartbeat check
             setInterval(() => {
+                const now = Date.now();
+
+                // 1. Handshake if not connected
                 if (!this.isConnected) {
                     this.sendHandshake();
                 }
-            }, 3000);
+
+                // 2. Heartbeat Check
+                // If we were connected, but haven't heard from plugin in > 5s, assume disconnected
+                if (this.isConnected && (now - this.lastHeartbeat > 5000)) {
+                    console.warn('FigPal Bridge: Heartbeat lost (timeout). Marking disconnected.');
+                    this.isConnected = false;
+                    this.pluginWindow = null; // Reset reference
+                    FP.emit('plugin-status', { connected: false });
+                }
+
+                // 3. Send Ping (if we think we are connected)
+                if (this.isConnected) {
+                    this.sendToPlugin({ source: 'figpal-extension', type: 'ping' });
+                }
+            }, 2000); // Run every 2s
 
             console.log('FigPal: Plugin bridge initialized.');
         },

@@ -94,23 +94,7 @@
             width: 100%;
         }
 
-        /* Badge Specs from MCP */
-        .badge {
-            background: #FFF5E3;
-            color: #C05B04;
-            padding: 4px 6px;
-            border-radius: 6px;
-            display: flex;
-            align-items: center;
-            gap: 6px;
-            font-size: 10px;
-            font-weight: 500;
-        }
 
-        .connected .badge {
-            background: #E6F4EA;
-            color: #1E8E3E;
-        }
 
         .selection-label {
             font-size: 10px;
@@ -152,18 +136,14 @@
         </div>
 
         <div class="status-row">
-            <div class="badge" id="status-badge">
-                <span id="badge-icon">↻</span>
-                <span id="status-text">Waiting for extension</span>
-            </div>
+
             <div class="selection-label" id="selection-stats">No selection active</div>
         </div>
     </div>
 
     <script>
         const mainAvatar = document.getElementById('main-avatar');
-        const statusText = document.getElementById('status-text');
-        const badgeIcon = document.getElementById('badge-icon');
+
         const vizIcon = document.getElementById('viz-icon');
         const selectionStats = document.getElementById('selection-stats');
 
@@ -172,8 +152,8 @@
         // Use window.top for extension bridge, parent for backend code.js
         function broadcastReady() {
             const msg = { source: 'figpal-plugin', type: 'plugin-ready' };
-            try { window.top.postMessage(msg, '*'); } catch (e) {}
-            try { window.parent.postMessage(msg, '*'); } catch (e) {}
+            try { window.top.postMessage(msg, '*'); } catch (e) { }
+            try { window.parent.postMessage(msg, '*'); } catch (e) { }
         }
         broadcastReady();
         const bootInterval = setInterval(broadcastReady, 2000);
@@ -187,12 +167,13 @@
             if (data && data.source === 'figpal-extension') {
                 clearInterval(bootInterval);
                 document.body.className = 'connected';
-                statusText.textContent = 'Extension connected';
-                badgeIcon.textContent = '✓';
                 vizIcon.textContent = '⚡';
 
                 // If this was a request, forward to backend code.js
-                if (data.type && data.type !== 'handshake-ack') {
+                if (data.type === 'ping') {
+                    // Reply directly from UI thread - faster and confirms window is open
+                    window.top.postMessage({ source: 'figpal-plugin', type: 'pong' }, '*');
+                } else if (data.type && data.type !== 'handshake-ack') {
                     parent.postMessage({ pluginMessage: data }, '*');
                 }
             }
