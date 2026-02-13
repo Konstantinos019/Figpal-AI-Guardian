@@ -62,8 +62,22 @@
   scale: 1.1;
 }
 
-/* Chat Open State - FigPal moves to bottom right corner */
+/* Connection Status Indicators */
+#figpal-follower {
+  /* Default / Disconnected State */
+  filter: drop-shadow(0 0 4px rgba(255, 59, 48, 0.8));
+  /* Red Glow */
+  transition: filter 0.3s ease, transform 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+#figpal-follower.connected {
+  filter: drop-shadow(0 0 4px rgba(52, 199, 89, 0.8));
+  /* Green Glow */
+}
+
+/* When chat is visible, maybe remove the intense glow or keep it? */
 #figpal-container.chat-visible #figpal-follower {
+
   left: auto;
   right: -32px;
   top: auto;
@@ -94,6 +108,11 @@
 /* When resting, maybe bounce a little? */
 #figpal-container.resting #figpal-follower {
   animation: float 3s ease-in-out infinite;
+}
+
+#figpal-container.resting #figpal-follower.thinking {
+  animation: float 3s ease-in-out infinite;
+  scale: 1.1;
 }
 
 @keyframes float {
@@ -707,35 +726,36 @@
   color: #7B61FF;
 }
 
-/* Action Cards */
+/* Action Cards - Minimalist / Side-by-Side */
 .figpal-action-card {
-  margin: 8px 0;
-  padding: 12px;
-  background: #FFFFFF;
-  border: 1px solid #E5E5E5;
-  border-radius: 8px;
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+  margin: 4px 0;
+  padding: 0;
+  background: transparent;
+  border: none;
+  box-shadow: none;
 }
 
 .figpal-action-card .action-title {
   font-weight: 600;
-  font-size: 12px;
+  font-size: 13px;
   color: #000;
-  margin-bottom: 4px;
+  margin-bottom: 2px;
+  display: none;
+  /* Hide title if redundant */
 }
 
 .figpal-action-card .action-desc {
-  font-size: 11px;
-  color: #555;
+  font-size: 13px;
+  color: #333;
   margin-bottom: 8px;
   line-height: 1.4;
 }
 
 .figpal-action-card .action-buttons {
-  display: grid;
-  grid-template-columns: 1fr;
-  gap: 12px;
-  margin-top: 12px;
+  display: flex;
+  flex-direction: row;
+  gap: 8px;
+  margin-top: 4px;
   width: 100%;
 }
 
@@ -863,73 +883,7 @@
 
 /* 📍 Part 3: Selection Captured State */
 #figpal-follower.captured {
-  /* Glow removed per user request */
   transition: filter 0.3s ease;
 }
 
 /* Connection Status Indicator */
-.figpal-header-left {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
-.figpal-status-dot {
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
-  background-color: #CBD5E1;
-  /* Neutral/Disconnected */
-  border: 1px solid rgba(0, 0, 0, 0.05);
-  transition: all 0.3s ease;
-  position: relative;
-}
-
-.figpal-status-dot.connected {
-  background-color: #22C55E;
-  /* Connected Green */
-  box-shadow: 0 0 8px rgba(34, 197, 94, 0.4);
-  animation: figpal-dot-pulse 2s infinite ease-in-out;
-}
-
-@keyframes figpal-dot-pulse {
-  0% {
-    transform: scale(1);
-    opacity: 1;
-    box-shadow: 0 0 0px rgba(34, 197, 94, 0);
-  }
-
-  50% {
-    transform: scale(1.1);
-    opacity: 0.8;
-    box-shadow: 0 0 8px rgba(34, 197, 94, 0.6);
-  }
-
-  100% {
-    transform: scale(1);
-    opacity: 1;
-    box-shadow: 0 0 0px rgba(34, 197, 94, 0);
-  }
-}
-
-/* Optional pulse effect when selection is made */
-.figpal-selection-pulse {
-  animation: figpal-pulse-glow 1.2s ease-out;
-}
-
-@keyframes figpal-pulse-glow {
-  0% {
-    transform: scale(1);
-    filter: drop-shadow(0 0 0px rgba(13, 153, 255, 0));
-  }
-
-  50% {
-    transform: scale(1.15);
-    filter: drop-shadow(0 0 20px rgba(13, 153, 255, 1));
-  }
-
-  100% {
-    transform: scale(1);
-    filter: drop-shadow(0 0 8px rgba(13, 153, 255, 0.6));
-  }
-}

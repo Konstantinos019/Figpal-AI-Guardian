@@ -98,19 +98,22 @@
         const isFix = eventName.startsWith('FIX:');
         const cleanEvent = isFix ? eventName.substring(4) : eventName;
 
-        if (isNative) {
+        if (isFix) {
             console.log('FigPal Actions: Routing to NATIVE', cleanEvent);
 
-            // Priority 1: Check commands.js (for things like LAUNCH_BRIDGE or AUDIT)
-            if (FP.commands && FP.commands.tryHandle(eventName)) {
+            // Priority 2: Native Node Updates (RENAME/CONTENT/FILL)
+            const [type, data] = cleanEvent.split('|');
+
+            // Priority 1: Check commands.js (for things like LAUNCH_BRIDGE or AUDIT or LEARN)
+            // Re-construct the command key to see if it exists (e.g. "FIX:LEARN")
+            const cmdKey = `FIX:${type}`;
+            if (FP.commands && FP.commands.tryHandle(cmdKey, data)) {
                 e.target.textContent = 'Triggered 🚀';
                 e.target.style.background = '#22C55E';
                 e.target.style.color = 'white';
                 return;
             }
 
-            // Priority 2: Native Node Updates (RENAME/CONTENT/FILL)
-            const [type, data] = cleanEvent.split('|');
             const nodeId = FP.state.selectedNodeId;
 
             if (nodeId && FP.pluginBridge?.isConnected) {
@@ -203,10 +206,14 @@
         if (isThinking) msgDiv.classList.add('thinking');
 
         if (sender === 'bot' && !isThinking && !isHtml) {
-            msgDiv.innerHTML = parseMarkdown(text);
-            bindActions(msgDiv);
+            // Organic Typing Effect
+            typeText(msgDiv, text, () => {
+                bindActions(msgDiv);
+                processDynamicContent(msgDiv);
+            });
         } else if (isHtml) {
             msgDiv.innerHTML = text;
+            if (sender === 'bot') processDynamicContent(msgDiv);
         } else {
             msgDiv.textContent = text;
         }
@@ -215,6 +222,116 @@
         contentArea.appendChild(row);
         contentArea.scrollTop = contentArea.scrollHeight;
         return { row, msgDiv, avatar: row.querySelector('.figpal-avatar') };
+    }
+
+    // ─── Dynamic Content Processor ───
+    async function processDynamicContent(container) {
+        if (!container) return;
+
+        // Find all {{IMAGE:id}} patterns in text nodes
+        // Since we already set innerHTML, they are text.
+        // We need to replace them with placeholder elements first.
+
+        // Strategy: Regex replace on innerHTML (risky but effective for this specific pattern)
+        // Only target {{IMAGE:...}} that isn't already inside a tag
+        const html = container.innerHTML;
+        const imageRegex = /\{\{IMAGE:([^}]+)\}\}/g;
+
+        if (!imageRegex.test(html)) return;
+
+        // Replace with placeholders
+        container.innerHTML = html.replace(imageRegex, (match, nodeId) => {
+            return `<div class="figpal-image-loader" data-node-id="${nodeId.trim()}" style="
+                width: 100%; height: 100px; 
+                background: rgba(255,255,255,0.05); 
+                border-radius: 8px; 
+                display: flex; align-items: center; justify-content: center;
+                margin: 8px 0; font-size: 12px; color: #888;">
+                Loading Image...
+            </div>`;
+        });
+
+        // Re-bind actions (since we nuked innerHTML)
+        bindActions(container);
+
+        // Now fetch images
+        const loaders = container.querySelectorAll('.figpal-image-loader');
+        for (const loader of loaders) {
+            const nodeId = loader.dataset.nodeId;
+            if (!nodeId) continue;
+
+            if (FP.pluginBridge && FP.pluginBridge.isConnected) {
+                try {
+                    const result = await FP.pluginBridge.request('show-media', { nodeId });
+                    if (result?.success && result.image) {
+                        const img = document.createElement('img');
+                        img.src = result.image;
+                        img.style.maxWidth = '100%';
+                        img.style.borderRadius = '8px';
+                        img.style.marginTop = '8px';
+                        img.style.border = '1px solid rgba(255,255,255,0.1)';
+                        img.alt = result.name || 'Figma Image';
+
+                        // Swap loader
+                        loader.replaceWith(img);
+
+                        // Scroll to bottom just in case
+                        const contentArea = FP.state.elements.chatBubble?.querySelector('.figpal-chat-content');
+                        if (contentArea) contentArea.scrollTop = contentArea.scrollHeight;
+                    } else {
+                        loader.textContent = '❌ Image not found';
+                    }
+                } catch (e) {
+                    loader.textContent = '❌ Error loading image';
+                }
+            } else {
+                loader.textContent = '🔌 Connect Bridge to view';
+            }
+        }
+    }
+
+    // ─── Typing Effect ───
+    function typeText(container, text, onComplete) {
+        // Calculate dynamic speed
+        // Short (0-50 chars) -> Slow (30-50ms)
+        // Medium (50-200) -> Medium (15-25ms)
+        // Long (200+) -> Fast (5-10ms)
+        const length = text.length;
+        let delay = 20;
+        if (length < 50) delay = 40;
+        else if (length > 200) delay = 8;
+        else if (length > 500) delay = 4;
+
+        let index = 0;
+        // Optimization: Type by words for smoother markdown rendering, or small chunks
+        // Typing strictly by char can break MD syntax like ** temporarily causing flash
+        // Taking a hybrid approach: fast char typing
+
+        function type() {
+            if (index < length) {
+                // Add a random variance to make it "organic" (+- 5ms)
+                const variance = Math.random() * 10 - 5;
+
+                // Grab next chunk (1-3 chars to speed up execution loop)
+                const chunkJson = Math.min(length - index, 3);
+                index += chunkJson;
+
+                const currentStr = text.substring(0, index);
+                const html = parseMarkdown(currentStr + (index < length ? '▍' : '')); // Cursor effect
+                container.innerHTML = html;
+
+                // Auto-scroll while typing
+                const contentArea = FP.state.elements.chatBubble?.querySelector('.figpal-chat-content');
+                if (contentArea) contentArea.scrollTop = contentArea.scrollHeight;
+
+                setTimeout(type, Math.max(2, delay + variance));
+            } else {
+                // Final render without cursor
+                container.innerHTML = parseMarkdown(text);
+                if (onComplete) onComplete();
+            }
+        }
+        type();
     }
 
     // ─── Export ──────────────────────────────────────────────────────────

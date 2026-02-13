@@ -171,7 +171,9 @@
 
         // Use window.top for extension bridge, parent for backend code.js
         function broadcastReady() {
-            window.top.postMessage({ source: 'figpal-plugin', type: 'plugin-ready' }, '*');
+            const msg = { source: 'figpal-plugin', type: 'plugin-ready' };
+            try { window.top.postMessage(msg, '*'); } catch (e) {}
+            try { window.parent.postMessage(msg, '*'); } catch (e) {}
         }
         broadcastReady();
         const bootInterval = setInterval(broadcastReady, 2000);

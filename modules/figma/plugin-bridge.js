@@ -91,25 +91,24 @@
         },
 
         findAllIframes(root, depth = 0) {
-            if (depth > 5) return []; // Stop runaway recursion
-            let results = Array.from(root.querySelectorAll('iframe'));
+            if (depth > 8) return []; // Increased depth for UI3
+            let results = [];
 
-            // Check Shadow DOMs (Figma uses them)
-            const all = root.querySelectorAll('*');
-            for (const el of all) {
-                if (el.shadowRoot) {
-                    results = results.concat(this.findAllIframes(el.shadowRoot, depth + 1));
-                }
-            }
+            try {
+                // Standard iframes
+                results = Array.from(root.querySelectorAll('iframe'));
 
-            // Recursively search into accessible same-origin iframes
-            results.forEach(iframe => {
-                try {
-                    if (iframe.contentDocument) {
-                        results = results.concat(this.findAllIframes(iframe.contentDocument, depth + 1));
+                // Shadow DOMs
+                const walker = document.createTreeWalker(root, NodeFilter.SHOW_ELEMENT);
+                let node;
+                while (node = walker.nextNode()) {
+                    if (node.shadowRoot) {
+                        results = results.concat(this.findAllIframes(node.shadowRoot, depth + 1));
                     }
-                } catch (e) { }
-            });
+                }
+            } catch (e) {
+                // Ignore DOM access errors
+            }
 
             return results;
         },

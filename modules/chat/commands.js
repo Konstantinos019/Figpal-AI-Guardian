@@ -51,19 +51,63 @@
         },
 
         'FIX:LAUNCH_BRIDGE': function () {
-            // Trigger plugin automation
-            if (FP.figma.launchPlugin) {
-                FP.figma.launchPlugin();
-            } else {
-                FP.chat.addMessage('❌ Automation module not loaded.', 'bot');
-            }
+            // Action: Show instructions for manual connection
+            FP.chat.addMessage('🔌 **Connect Bridge**\n\nI cannot open plugins directly (Figma security).\n\n**To Connect:**\n1. Press `Cmd + /` in Figma\n2. Type `FigPal Bridge`\n3. Press Enter\n\nI will auto-connect instantly! ⚡', 'bot');
         },
+
         'LAUNCH_BRIDGE': function () {
             // Alias for button events
-            if (FP.figma.launchPlugin) {
-                FP.figma.launchPlugin();
+            FP.commands['FIX:LAUNCH_BRIDGE']();
+        },
+
+        'FIX:LEARN': function (arg) {
+            // Triggered by button: [Save Skill:FIX:LEARN|The Rule Text]
+            if (!arg) return;
+
+            // Re-use the existing logic by simulating /learn
+            const skill = arg.trim();
+            if (skill) {
+                FP.state.skills = FP.state.skills || [];
+                if (!FP.state.skills.includes(skill)) {
+                    FP.state.skills.push(skill);
+                    chrome.storage.sync.set({ skills: FP.state.skills });
+                    FP.chat.addMessage(`🧠 **Skill Saved!**\n\nI've added this to my brain:\n*"${skill}"*`, 'bot');
+                } else {
+                    FP.chat.addMessage(`brain **I Know That!**\n\nThat skill is already in my memory.`, 'bot');
+                }
+            }
+        },
+
+        'FIX:PLACE': function (arg) {
+            // Triggered by button: [Place Template:FIX:PLACE|{nodeId}]
+            if (!arg) return;
+            const nodeId = arg.trim();
+
+            if (FP.pluginBridge && FP.pluginBridge.isConnected) {
+                FP.pluginBridge.send('instantiate-component', { nodeId });
             } else {
-                FP.chat.addMessage('❌ Automation module not loaded.', 'bot');
+                FP.chat.addMessage('🔌 **Plugin Disconnected**\n\nI need the FigPal Bridge to place components.', 'bot');
+            }
+        },
+
+        'FIX:SHOW_MEDIA': async function (arg) {
+            // Triggered by button: [Show Image:FIX:SHOW_MEDIA|{nodeId}]
+            if (!arg) return;
+            const nodeId = arg.trim();
+
+            if (FP.pluginBridge && FP.pluginBridge.isConnected) {
+                FP.chat.addMessage(`🖼️ **Retrieving Media...**`, 'bot');
+                const result = await FP.pluginBridge.request('show-media', { nodeId });
+
+                if (result?.success && result.image) {
+                    // Display the image in chat
+                    const imgHtml = `<img src="${result.image}" style="max-width:100%; border-radius:8px; margin-top:8px; border:1px solid rgba(255,255,255,0.1);">`;
+                    FP.chat.addMessage(`**Media: ${result.name}**<br>${imgHtml}`, 'bot');
+                } else {
+                    FP.chat.addMessage('❌ Failed to retrieve media. It might be too large or deleted.', 'bot');
+                }
+            } else {
+                FP.chat.addMessage('🔌 **Plugin Disconnected**\n\nI need the Bridge to see images.', 'bot');
             }
         },
 
@@ -148,10 +192,11 @@
 
     /**
      * Try to handle input as a slash command.
-     * @param {string} text - User input
+     * @param {string} text - User input or command key
+     * @param {string} [arg] - Optional argument for the command
      * @returns {boolean} true if it was a command (skip AI)
      */
-    function tryHandle(text) {
+    function tryHandle(text, arg) {
         if (!text) return false;
         const input = text.trim();
         const lower = input.toLowerCase();
@@ -204,11 +249,18 @@
         }
 
         // 3. Handle action confirm passthroughs (buttons)
+        // Check for direct match first (case-insensitive) in COMMANDS
+        const directCmd = Object.keys(COMMANDS).find(k => k.toLowerCase() === lower);
+        if (directCmd) {
+            COMMANDS[directCmd](arg); // Pass arg if present
+            return true;
+        }
+
         if (lower.startsWith('fix:')) {
-            // If it's a FIX:AUDIT or similar that matches a command
+            // Fallback: If it's a FIX:AUDIT that wasn't caught above
             const cmd = Object.keys(COMMANDS).find(k => k.toLowerCase() === lower);
             if (cmd) {
-                COMMANDS[cmd]();
+                COMMANDS[cmd](arg);
                 return true;
             }
         }

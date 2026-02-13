@@ -56,6 +56,45 @@ figma.ui.onmessage = async (msg) => {
         });
     }
 
+    if (type === 'instantiate-component') {
+        const { nodeId } = data;
+        const node = figma.getNodeById(nodeId);
+
+        if (!node) {
+            figma.ui.postMessage({ type: 'response', id, data: { success: false, error: 'Component not found. It might be in another file.' } });
+            return;
+        }
+
+        if (node.type !== 'COMPONENT' && node.type !== 'COMPONENT_SET') {
+            figma.ui.postMessage({ type: 'response', id, data: { success: false, error: 'Selected node is not a component.' } });
+            return;
+        }
+
+        try {
+            let instance;
+            if (node.type === 'COMPONENT_SET') {
+                instance = node.defaultVariant.createInstance();
+            } else {
+                instance = node.createInstance();
+            }
+
+            console.log(`FigPal Plugin: Created instance of ${instance.name} from ID ${nodeId}`);
+
+            // Position in center of viewport
+            const { x, y, width, height } = figma.viewport.bounds;
+            instance.x = x + width / 2 - instance.width / 2;
+            instance.y = y + height / 2 - instance.height / 2;
+
+            figma.currentPage.appendChild(instance);
+            figma.currentPage.selection = [instance];
+            figma.notify(`✨ Added instance of ${node.name}`);
+
+            figma.ui.postMessage({ type: 'response', id, data: { success: true } });
+        } catch (err) {
+            figma.ui.postMessage({ type: 'response', id, data: { success: false, error: err.message } });
+        }
+    }
+
     if (type === 'create-annotation') {
         const { text, title } = data;
         const selection = figma.currentPage.selection;
@@ -266,9 +305,81 @@ function simplifyNode(node, depth = 0) {
         if ('constraints' in node) {
             obj.constraints = node.constraints; // {horizontal: "MIN"|"CENTER"|..., vertical: ...}
         }
+        if (depth === 0) {
+            // ─── Content Extraction (Text) ───
+            const allText = extractText(node);
+            if (allText.length > 0) {
+                obj.extractedText = allText.substring(0, 10000); // Limit to 10k chars
+                obj.hasTextContent = true;
+            }
+
+            // ─── Media Extraction (Images, Videos, Links) ───
+            const media = extractMedia(node);
+            if (media.images.length > 0) obj.extractedImages = media.images;
+            if (media.videos.length > 0) obj.extractedVideos = media.videos;
+            if (media.links.length > 0) obj.extractedLinks = media.links;
+        }
     } catch (e) {
         // Silently fail for protected properties
     }
 
     return obj;
+}
+
+/**
+ * recursively extracts media definitions
+ */
+function extractMedia(node) {
+    const media = { images: [], videos: [], links: [] };
+
+    // 1. Check for Fills (Images/Videos)
+    if ('fills' in node && Array.isArray(node.fills)) {
+        for (const paint of node.fills) {
+            if (paint.type === 'IMAGE') {
+                media.images.push({ id: node.id, name: node.name, paintId: paint.imageHash });
+            }
+            if (paint.type === 'VIDEO') {
+                media.videos.push({ id: node.id, name: node.name, paintId: paint.videoHash });
+            }
+        }
+    }
+
+    // 2. Check for Hyperlinks (Text nodes or explicit property)
+    // Note: Figma's API for links varies. checking generic property + text content.
+    // 'hyperlink' property exists on nodes in newer API versions
+    // @ts-ignore
+    if (node.hyperlink && node.hyperlink.type === 'URL') {
+        // @ts-ignore
+        media.links.push({ id: node.id, url: node.hyperlink.value });
+    }
+
+    // 3. Recurse
+    if ('children' in node) {
+        for (const child of node.children) {
+            const childMedia = extractMedia(child);
+            media.images.push(...childMedia.images);
+            media.videos.push(...childMedia.videos);
+            media.links.push(...childMedia.links);
+        }
+    }
+
+    return media;
+}
+
+/**
+ * Recursively extracts text from a node and its children.
+ * @param {SceneNode} node 
+ * @returns {string}
+ */
+function extractText(node) {
+    let text = '';
+    if (node.type === 'TEXT') {
+        text += node.characters + '\n';
+    }
+    if ('children' in node) {
+        for (const child of node.children) {
+            text += extractText(child);
+        }
+    }
+    return text;
 }

@@ -73,7 +73,8 @@
 
             // 6. Build prompt and call AI
             console.log('FigPal Flow: Building prompt with context:', !!context);
-            const prompt = FP.ai.buildPrompt(text, context, FP.state.chatHistory);
+            const isConnected = !!(FP.pluginBridge && FP.pluginBridge.isConnected);
+            const prompt = FP.ai.buildPrompt(text, context, FP.state.chatHistory, isConnected);
             const response = specificResponse || await FP.ai.sendToAI(prompt);
 
             // 7. Render response

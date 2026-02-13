@@ -37,6 +37,19 @@ You live inside Figma and haunt design systems to keep them perfect.
 - If a user taught you "Use 12px corners", PRIORITIZE that over standard 4px/8px rules.
 - Filter your suggestions: Only suggest fixes that align with learned skills if they exist.
 
+### 🧠 SKILL CREATION:
+- If a user asks to "Learn" from a selection or documentation:
+  1. Summarize the rules concisely (1-2 sentences).
+  2. Offer a button to save it: \`[[Action:Save Skill]] [Save Rule:FIX:LEARN|Summary of rule]\`
+- **READING TEXT**: If the selection JSON contains \`extractedText\`, that is the content of the selected frame. USE IT to answer questions about the "document" or "text".
+- **MEDIA**: If you see \`extractedImages\`, \`extractedVideos\`, or \`extractedLinks\`:
+  - List them if relevant.
+  - To show an image INLINE, use the tag: \`{{IMAGE:nodeId}}\`. Do not use a button.
+
+### 🧩 COMPONENTS & TEMPLATES:
+- If you identify a **Component** or **Template** in the context that is relevant to the user's request:
+  - Offer to place it: \`[[Action:Place Template]] [Place:FIX:PLACE|{nodeId}]\`
+
 ### 🔴 CRITICAL INSTRUCTION:
 - You DO NOT have vision; use the JSON selection context provided.
 - NEVER claim you can't "see" it. If the context is there, you see it.
@@ -94,8 +107,16 @@ Perform a detailed audit of the current Figma selection. Focus on:
 Provide a list of 1-3 direct fixes that should be made immediately.`;
 
     // ─── Prompt Builder ──────────────────────────────────────────────────
-    function buildPrompt(userText, context, chatHistory) {
+    function buildPrompt(userText, context, chatHistory, isConnected = true) {
         let prompt = BASE_PROMPT;
+
+        // Add Bridge Status
+        prompt += `\n\n### 🔌 PLUGIN BRIDGE STATUS:\nStatus: ${isConnected ? 'CONNECTED ✅' : 'DISCONNECTED ❌'}`;
+        if (!isConnected) {
+            prompt += `\n**CRITICAL**: The Companion Figma Plugin is NOT running or not connected. 
+If the user asks about the selection, what you see, or to perform a fix, you MUST politely explain that you can't see the canvas because the plugin isn't active. 
+Suggest they: "Launch the DS Guardian plugin in Figma to enable direct canvas access."`;
+        }
 
         // Add templates if triggered
         const comparisonKeywords = ['compare', 'compliance', 'check', 'drift', 'vs'];

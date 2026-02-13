@@ -131,7 +131,7 @@
         const isPluginConnected = FP.pluginBridge && FP.pluginBridge.isConnected;
         const skills = FP.state.skills || [];
 
-        let adaptiveButtons = '[Audit:FIX:AUDIT] [Launch Bridge:FIX:LAUNCH_BRIDGE]';
+        let adaptiveButtons = '[Audit:FIX:AUDIT] [Connect Bridge:FIX:LAUNCH_BRIDGE]';
 
         // Add context-aware buttons based on skills
         if (skills.some(s => s.toLowerCase().includes('color'))) {

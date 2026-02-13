@@ -224,17 +224,27 @@
         // ─── Listen for thinking state → toggle buttons ──────────────────
         FP.on('ai-thinking', (isThinking) => {
             toggleInputState(chatBubble, isThinking);
+
+            // Toggle class for CSS scaling
+            if (isThinking) {
+                FP.state.elements.follower.classList.add('thinking');
+            } else {
+                FP.state.elements.follower.classList.remove('thinking');
+            }
         });
 
         // ─── Listen for plugin status → update dot ───────────────────────
+        // ─── Listen for plugin status → update dot & follower ────────────────
         FP.on('plugin-status', (data) => {
             const dot = document.getElementById('figpal-connection-dot');
-            if (dot) {
-                if (data.connected) {
-                    dot.classList.add('connected');
-                } else {
-                    dot.classList.remove('connected');
-                }
+            const follower = FP.state.elements.follower;
+
+            if (data.connected) {
+                if (dot) dot.classList.add('connected');
+                if (follower) follower.classList.add('connected');
+            } else {
+                if (dot) dot.classList.remove('connected');
+                if (follower) follower.classList.remove('connected');
             }
         });
 
@@ -247,10 +257,6 @@
 
             if (selection && selection.length > 0) {
                 follower.classList.add('captured');
-                // Trigger a quick pulse to show we saw the selection
-                follower.classList.remove('figpal-selection-pulse');
-                void follower.offsetWidth; // flush CSS
-                follower.classList.add('figpal-selection-pulse');
             } else {
                 follower.classList.remove('captured');
                 follower.style.filter = '';

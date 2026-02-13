@@ -97,9 +97,8 @@
         FP.state.isThinking = isThinking;
         const follower = FP.state.elements.follower;
         if (!follower) return;
-        const img = follower.querySelector('img');
-        if (img) {
-            img.src = isThinking ? FP.state.sprites.thinking : FP.state.sprites.default;
-        }
+
+        // Follower IS the img tag, swap directly
+        follower.src = isThinking ? FP.state.sprites.thinking : FP.state.sprites.default;
     });
 })();
