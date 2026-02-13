@@ -840,6 +840,27 @@
   fill: white;
 }
 
+/* Toolbar Button Injection - Leveraging Native Classes */
+.figpal-toolbar-btn {
+  /* Dimensions are handled by template clone, but we ensure our icon behavior */
+  transition: background 0.1s, color 0.1s;
+}
+
+.figpal-toolbar-btn svg {
+  width: 20px;
+  height: 20px;
+  pointer-events: none;
+}
+
+/* Ensure the icon turns white when the native selected class is present */
+.figpal-toolbar-btn.toolbelt_button--selectedButton--ebyl7 svg path {
+  fill: #FFFFFF !important;
+}
+
+.figpal-toolbar-btn svg path {
+  fill: currentColor;
+}
+
 /* 📍 Part 3: Selection Captured State */
 #figpal-follower.captured {
   /* Glow removed per user request */

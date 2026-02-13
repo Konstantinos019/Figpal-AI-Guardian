@@ -29,21 +29,106 @@
                 FP.state.selectedNodeId = rawId.replace('-', ':');
             }
 
-            // 2. Already injected?
-            if (document.getElementById('figpal-container')) {
-                isInjected = true;
-                return;
-            }
+            // 2. Main Injection Logic
+            const toolbarWrapper = document.querySelector('[data-testid="design-toolbelt-wrapper"]');
+            const targetElement = toolbarWrapper || document.querySelector('[data-testid="objects-panel"]');
 
-            // 3. Detect editor
-            const targetElement = document.querySelector('[data-testid="design-toolbelt-wrapper"]') ||
-                document.querySelector('[data-testid="objects-panel"]');
-
-            if (targetElement && !isInjected) {
-                console.log('FigPal: Editor detected via', targetElement.getAttribute('data-testid'));
+            if (targetElement) {
                 inject();
+                injectToolbarButton(toolbarWrapper);
             }
         }, 1000);
+    }
+
+    function injectToolbarButton(toolbarWrapper) {
+        if (!toolbarWrapper) return;
+
+        // Figma UI3 can have multiple toolbar rows (Design vs Dev Mode).
+        const leftSideRows = Array.from(toolbarWrapper.querySelectorAll('[class*="leftSideRow"]'));
+
+        leftSideRows.forEach(row => {
+            // Check if already injected in THIS specific row
+            if (row.querySelector('.figpal-toolbar-btn')) return;
+            if (row.offsetWidth === 0 || row.offsetHeight === 0) return;
+
+            // Find a native button to clone (prioritize standard square tools like Move or Rectangle)
+            const templateBtn = row.querySelector('[aria-label="Move"]') ||
+                row.querySelector('[aria-label="Rectangle"]') ||
+                row.querySelector('[aria-label="Actions"]') ||
+                row.querySelector('.toolbelt_button--topLevelButtonNew--KhQeE');
+
+            if (!templateBtn) return;
+
+            const toolbarBtn = templateBtn.cloneNode(true);
+            toolbarBtn.className = templateBtn.className + ' figpal-toolbar-btn';
+            toolbarBtn.setAttribute('aria-label', 'DS Guardian');
+            toolbarBtn.setAttribute('data-testid', 'ds-guardian-tool');
+            toolbarBtn.setAttribute('data-tooltip', 'DS Guardian');
+            toolbarBtn.setAttribute('data-tooltip-shortcut', 'Alt+D');
+            toolbarBtn.setAttribute('aria-pressed', 'false');
+            toolbarBtn.classList.remove('toolbelt_button--selectedButton--ebyl7'); // Start unselected
+
+            // Replace icon and remove dropdown arrow
+            const iconContainer = toolbarBtn.querySelector('svg') || toolbarBtn;
+
+            // Remove any extra elements like the dropdown arrow (chevron)
+            toolbarBtn.querySelectorAll('svg').forEach((s, i) => {
+                if (i > 0) s.remove(); // Keep only the first SVG (the icon)
+            });
+            // Also remove any div that might contain an arrow
+            toolbarBtn.querySelectorAll('[class*="chevron"], [class*="arrow"]').forEach(el => el.remove());
+
+            iconContainer.innerHTML = `
+                <g id="Vector">
+                    <path d="M11.5492 10.0125C11.7859 10.0544 11.9439 10.2802 11.9022 10.5169C11.8603 10.7537 11.6346 10.9116 11.3978 10.8699C11.1609 10.8282 11.003 10.6024 11.0448 10.3655C11.0866 10.1287 11.3123 9.97079 11.5492 10.0125Z" fill="currentColor"/>
+                    <path d="M7.355 9.17303C7.59177 9.21487 7.74975 9.44147 7.70799 9.67827C7.66606 9.9149 7.4403 10.0729 7.2036 10.0313C6.96678 9.98951 6.80894 9.76368 6.85061 9.52687C6.89237 9.29001 7.11814 9.13127 7.355 9.17303Z" fill="currentColor"/>
+                    <path fill-rule="evenodd" clip-rule="evenodd" d="M9.2688 4.21928C10.2128 3.95874 11.432 3.95343 13.2078 4.50762C15.1158 5.1031 16.9967 6.34414 18.552 7.85379C20.107 9.36322 21.3658 11.1696 22.0045 12.9266C22.6403 14.6759 22.6871 16.462 21.6634 17.8191C20.6441 19.17 18.6699 19.9515 15.6081 19.9515C13.6101 19.9515 11.2386 19.7944 8.96004 19.2081C6.68282 18.6222 4.46917 17.6001 2.82058 15.8509C2.42153 15.4275 2.07853 15.0648 1.85518 14.5886C1.62736 14.1028 1.53877 13.5369 1.53876 12.7182C1.53883 11.7842 1.9314 11.2128 2.45738 10.904C2.67085 10.7786 2.89555 10.7041 3.10297 10.659C3.05182 10.3181 3.12785 9.92367 3.22886 9.58131C3.33863 9.20933 3.49775 8.83108 3.65159 8.52234C3.79747 8.22966 3.9637 7.94726 4.09985 7.80275C5.02461 6.82157 6.00591 5.92491 7.20955 5.25273C7.7037 4.97667 8.35936 4.47036 9.2688 4.21928ZM12.9484 5.33948C11.2851 4.82038 10.2421 4.85435 9.501 5.05879C8.72571 5.27281 8.27203 5.65765 7.63399 6.01399C6.54223 6.62373 5.63166 7.44776 4.73352 8.40071C4.6935 8.44351 4.57586 8.62077 4.43157 8.9102C4.29474 9.18476 4.15631 9.51558 4.06412 9.82797C3.96751 10.1555 3.93975 10.4035 3.96545 10.5433C3.96927 10.5639 3.97405 10.5779 3.97736 10.5867C3.98599 10.5883 3.99985 10.5918 4.01989 10.5918C4.72039 10.5919 5.43182 11.0349 6.08254 11.0349C6.7593 11.2697 7.36354 11.5093 7.9453 11.6286C8.45304 11.7327 8.99344 11.8142 9.55799 11.8966C10.1186 11.9784 10.7037 12.0616 11.283 12.1688C12.4391 12.3826 13.6174 12.6991 14.6308 13.3315C14.8347 13.4589 14.8975 13.728 14.7703 13.932C14.643 14.1358 14.3738 14.1978 14.1698 14.0706C13.2958 13.5252 12.2461 13.2327 11.1248 13.0253C10.5653 12.9218 9.99874 12.8409 9.43211 12.7582C8.8694 12.6761 8.30551 12.5915 7.77008 12.4818C7.11398 12.3472 6.41903 12.0733 5.79675 11.8574C5.14862 11.6326 4.55997 11.4629 4.01989 11.4628C3.96449 11.4628 3.90896 11.458 3.85488 11.45C3.82366 11.4572 3.79129 11.4627 3.75791 11.4628C3.52563 11.4628 3.17717 11.4912 2.89798 11.655C2.65801 11.7961 2.40982 12.07 2.40975 12.7182C2.40976 13.4821 2.49433 13.9002 2.64366 14.2186C2.79749 14.5467 3.03588 14.8099 3.45426 15.2538C4.95164 16.8425 6.9948 17.8028 9.17693 18.3644C11.3578 18.9255 13.6493 19.0805 15.6081 19.0805C18.5606 19.0805 20.1923 18.323 20.9685 17.2943C21.7395 16.2719 21.7725 14.8375 21.1862 13.2243C20.6025 11.6185 19.4294 9.9194 17.9455 8.47896C16.4617 7.03872 14.6949 5.88459 12.9484 5.33948Z" fill="currentColor"/>
+                </g>
+            `;
+
+            // Ensure standard SVG attributes for scaling
+            const svgElement = toolbarBtn.querySelector('svg');
+            if (svgElement) {
+                svgElement.setAttribute('viewBox', '0 0 24 24');
+                svgElement.setAttribute('width', '20');
+                svgElement.setAttribute('height', '20');
+                svgElement.style.width = '20px';
+                svgElement.style.height = '20px';
+            }
+
+            // Target the inner tools row for better alignment
+            const targetRow = row.querySelector('[class*="enabledToolsRow"]') || row;
+            targetRow.appendChild(toolbarBtn);
+
+            toolbarBtn.addEventListener('click', (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                FP.state.elements.container.classList.toggle('chat-visible');
+                updateToolbarBtnState();
+            });
+        });
+
+        // Sync state
+        const observer = new MutationObserver(() => updateToolbarBtnState());
+        observer.observe(FP.state.elements.container, { attributes: true, attributeFilter: ['class'] });
+
+        updateToolbarBtnState();
+    }
+
+    function updateToolbarBtnState() {
+        const toolbarBtns = document.querySelectorAll('.figpal-toolbar-btn');
+        const container = FP.state.elements.container;
+        if (!toolbarBtns.length || !container) return;
+
+        toolbarBtns.forEach(btn => {
+            if (container.classList.contains('chat-visible')) {
+                btn.classList.add('toolbelt_button--selectedButton--ebyl7');
+                btn.setAttribute('aria-pressed', 'true');
+            } else {
+                btn.classList.remove('toolbelt_button--selectedButton--ebyl7');
+                btn.setAttribute('aria-pressed', 'false');
+            }
+        });
     }
 
     // ─── DOM Injection ───────────────────────────────────────────────────
