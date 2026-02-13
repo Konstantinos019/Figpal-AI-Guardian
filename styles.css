@@ -439,6 +439,132 @@
 #save-keys-btn:hover {
   background: #007ACC;
 }
+
+/* ─── New Setup Component (from setup.js) ─── */
+.figpal-setup {
+  margin-top: 4px;
+  padding: 16px;
+  background: #F9F9FB;
+  border: 1px solid #E8E8EC;
+  border-radius: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.figpal-setup h3 {
+  margin: 0 0 2px 0;
+  font-size: 15px;
+  font-weight: 700;
+  color: #1E1E1E;
+}
+
+.figpal-setup p {
+  margin: 0;
+  font-size: 12px;
+  color: #666;
+  line-height: 1.4;
+}
+
+.figpal-setup label {
+  display: block;
+  font-size: 10px;
+  font-weight: 700;
+  color: #888;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: 4px;
+}
+
+.figpal-setup-select {
+  width: 100%;
+  padding: 9px 12px;
+  border: 1px solid #E5E5E5;
+  border-radius: 8px;
+  font-size: 13px;
+  font-family: inherit;
+  color: #1E1E1E;
+  background: #FFFFFF;
+  outline: none;
+  cursor: pointer;
+  transition: border-color 0.2s;
+  -webkit-appearance: none;
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg width='10' height='6' viewBox='0 0 10 6' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M1 1L5 5L9 1' stroke='%23888' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 12px center;
+  padding-right: 32px;
+}
+
+.figpal-setup-select:hover {
+  border-color: #CCC;
+}
+
+.figpal-setup-select:focus {
+  border-color: #0D99FF;
+  box-shadow: 0 0 0 2px rgba(13, 153, 255, 0.12);
+}
+
+.figpal-setup-input {
+  width: 100%;
+  padding: 9px 12px;
+  border: 1px solid #E5E5E5;
+  border-radius: 8px;
+  font-size: 13px;
+  font-family: inherit;
+  color: #1E1E1E;
+  background: #FFFFFF;
+  outline: none;
+  transition: border-color 0.2s, box-shadow 0.2s;
+  box-sizing: border-box;
+}
+
+.figpal-setup-input:hover {
+  border-color: #CCC;
+}
+
+.figpal-setup-input:focus {
+  border-color: #0D99FF;
+  box-shadow: 0 0 0 2px rgba(13, 153, 255, 0.12);
+}
+
+.figpal-setup-input::placeholder {
+  color: #AAA;
+}
+
+.figpal-setup-btn {
+  width: 100%;
+  padding: 10px 16px;
+  background: linear-gradient(135deg, #0D99FF 0%, #3B82F6 100%);
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-weight: 600;
+  font-size: 13px;
+  font-family: inherit;
+  cursor: pointer;
+  transition: all 0.2s;
+  margin-top: 2px;
+}
+
+.figpal-setup-btn:hover {
+  background: linear-gradient(135deg, #007BE5 0%, #2563EB 100%);
+  box-shadow: 0 2px 8px rgba(13, 153, 255, 0.25);
+  transform: translateY(-1px);
+}
+
+.figpal-setup-btn:active {
+  transform: translateY(0);
+  box-shadow: none;
+}
+
+.figpal-setup-btn:disabled {
+  background: #CCC;
+  cursor: default;
+  transform: none;
+  box-shadow: none;
+}
+
 /* Model Selector */
 #figpal-model-selector {
   margin-left: auto;
@@ -466,6 +592,7 @@
   display: flex;
   gap: 8px;
 }
+
 .figpal-chat-btn {
   background: #F0F0F0;
   border: 1px solid #DDD;
@@ -477,15 +604,18 @@
   transition: background 0.1s;
   font-family: inherit;
 }
+
 .figpal-chat-btn.primary {
   background: #0D99FF;
   color: white;
   border-color: #0D99FF;
   font-weight: 500;
 }
+
 .figpal-chat-btn:hover {
   filter: brightness(0.95);
 }
+
 .figpal-chat-btn.primary:hover {
   background: #007BE5;
 }
@@ -567,8 +697,15 @@
 }
 
 /* Specific Chip Colors */
-.figpal-chip.type-component { background: rgba(123, 97, 255, 0.1); border-color: rgba(123, 97, 255, 0.2); color: #5B48D9; }
-.figpal-chip.type-instance { color: #7B61FF; }
+.figpal-chip.type-component {
+  background: rgba(123, 97, 255, 0.1);
+  border-color: rgba(123, 97, 255, 0.2);
+  color: #5B48D9;
+}
+
+.figpal-chip.type-instance {
+  color: #7B61FF;
+}
 
 /* Action Cards */
 .figpal-action-card {
@@ -594,17 +731,64 @@
   line-height: 1.4;
 }
 
+.figpal-action-card .action-buttons {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 12px;
+  margin-top: 12px;
+  width: 100%;
+}
+
+/* --- Quick Action Pills --- */
+.figpal-pill {
+  display: inline-block;
+  background: rgba(13, 153, 255, 0.1);
+  color: #0D99FF;
+  border: 1px solid rgba(13, 153, 255, 0.2);
+  padding: 6px 12px;
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  margin: 4px 4px 8px 0;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.figpal-pill:hover {
+  background: rgba(13, 153, 255, 0.2);
+  transform: scale(1.05);
+}
+
+.figpal-pill-selected {
+  background: #0D99FF;
+  color: white;
+  border-color: #0D99FF;
+}
+
 .figpal-action-btn {
   background: #0D99FF;
   color: white;
   border: none;
-  padding: 6px 12px;
-  border-radius: 6px;
-  font-size: 11px;
-  font-weight: 500;
+  padding: 10px 16px;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 600;
   cursor: pointer;
-  transition: all 0.2s;
-  width: 100%;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  text-align: center;
+  flex: 1 1 auto;
+  min-width: 100px;
+  box-shadow: 0 2px 4px rgba(13, 153, 255, 0.2);
+}
+
+.figpal-action-btn:hover {
+  background: #007BE5;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 8px rgba(13, 153, 255, 0.3);
+}
+
+.figpal-action-btn:active {
+  transform: translateY(0);
 }
 
 .figpal-action-btn:hover {
@@ -622,12 +806,14 @@
 }
 
 .figpal-chat-input-area input {
-  padding-right: 48px; /* Room for button */
+  padding-right: 48px;
+  /* Room for button */
 }
 
 #figpal-stop-btn {
   position: absolute;
-  right: 24px; /* 16px container padding + spacing */
+  right: 24px;
+  /* 16px container padding + spacing */
   top: 50%;
   transform: translateY(-50%);
   width: 28px;
@@ -652,4 +838,77 @@
   width: 12px;
   height: 12px;
   fill: white;
+}
+
+/* 📍 Part 3: Selection Captured State */
+#figpal-follower.captured {
+  /* Glow removed per user request */
+  transition: filter 0.3s ease;
+}
+
+/* Connection Status Indicator */
+.figpal-header-left {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.figpal-status-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background-color: #CBD5E1;
+  /* Neutral/Disconnected */
+  border: 1px solid rgba(0, 0, 0, 0.05);
+  transition: all 0.3s ease;
+  position: relative;
+}
+
+.figpal-status-dot.connected {
+  background-color: #22C55E;
+  /* Connected Green */
+  box-shadow: 0 0 8px rgba(34, 197, 94, 0.4);
+  animation: figpal-dot-pulse 2s infinite ease-in-out;
+}
+
+@keyframes figpal-dot-pulse {
+  0% {
+    transform: scale(1);
+    opacity: 1;
+    box-shadow: 0 0 0px rgba(34, 197, 94, 0);
+  }
+
+  50% {
+    transform: scale(1.1);
+    opacity: 0.8;
+    box-shadow: 0 0 8px rgba(34, 197, 94, 0.6);
+  }
+
+  100% {
+    transform: scale(1);
+    opacity: 1;
+    box-shadow: 0 0 0px rgba(34, 197, 94, 0);
+  }
+}
+
+/* Optional pulse effect when selection is made */
+.figpal-selection-pulse {
+  animation: figpal-pulse-glow 1.2s ease-out;
+}
+
+@keyframes figpal-pulse-glow {
+  0% {
+    transform: scale(1);
+    filter: drop-shadow(0 0 0px rgba(13, 153, 255, 0));
+  }
+
+  50% {
+    transform: scale(1.15);
+    filter: drop-shadow(0 0 20px rgba(13, 153, 255, 1));
+  }
+
+  100% {
+    transform: scale(1);
+    filter: drop-shadow(0 0 8px rgba(13, 153, 255, 0.6));
+  }
 }

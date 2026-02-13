@@ -88,11 +88,13 @@
 
     // ─── Send to AI ──────────────────────────────────────────────────────
     async function sendToAI(prompt) {
-        const { provider, apiKey, selectedModel } = FP.state;
+        const provider = FP.state.provider || 'gemini';
+        const apiKey = FP.state.apiKeys[provider];
+        const selectedModel = FP.state.selectedModel;
         const cfg = PROVIDERS[provider];
 
         if (!cfg) return 'Unknown AI provider: ' + provider;
-        if (!apiKey) return 'Please set your API key first. ⚙️';
+        if (!apiKey) return `Please set your API key for **${cfg.name}** via \`/connect\`. ⚙️`;
 
         // Abort any in-flight request
         if (FP.state.currentController) FP.state.currentController.abort();

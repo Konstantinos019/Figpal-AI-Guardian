@@ -115,11 +115,32 @@
         });
 
         // ─── Keyboard Shortcuts ──────────────────────────────────────────
-        window.addEventListener('keydown', (e) => {
-            // Alt+D: Toggle chat
-            if (e.code === 'KeyD' && e.altKey && !e.shiftKey && !e.metaKey && !e.ctrlKey) {
+        console.log('FigPal: Initializing keyboard shortcuts...');
+
+        document.addEventListener('keydown', (e) => {
+            // Debug log to verify events are reaching the content script
+            if (e.altKey || e.metaKey || e.code === 'Escape') {
+                console.log(`FigPal Debug: ${e.code}/${e.key} | Alt:${e.altKey} | Meta:${e.metaKey} | Target:${e.target.tagName}#${e.target.id || 'none'}`);
+            }
+
+            // Skip ONLY IF typing in a legitimate text field (not Figma's internal capture input).
+            const isControl = e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA' || e.target.isContentEditable;
+            const isOurInput = e.target.closest && e.target.closest('#figpal-container');
+            const isFigmaCapture = e.target.id === 'focus-target' || e.target.classList.contains('focus-target');
+
+            if (isControl && !isOurInput && !isFigmaCapture) {
+                return;
+            }
+
+            // Alt+D or Cmd+D: Toggle chat
+            const isD = e.code === 'KeyD' || e.key.toLowerCase() === 'd';
+            const isShortcut = (e.altKey || e.metaKey) && isD && !e.shiftKey && !e.ctrlKey;
+
+            if (isShortcut) {
+                console.log('FigPal: Shortcut Alt/Cmd+D detected!');
                 e.preventDefault();
                 e.stopPropagation();
+
                 if (container.classList.contains('resting')) {
                     FP.state.isFollowing = false;
                     container.classList.remove('resting');
@@ -128,6 +149,7 @@
                 } else {
                     container.classList.toggle('chat-visible');
                 }
+
                 if (container.classList.contains('chat-visible')) {
                     const input = chatBubble.querySelector('input');
                     if (input) setTimeout(() => input.focus(), 50);
@@ -135,22 +157,28 @@
             }
 
             // Escape: Close chat → Go home → Follow
-            if (e.code === 'Escape') {
+            if (e.code === 'Escape' || e.key === 'Escape') {
+                console.log('FigPal: Escape key detected');
                 if (container.classList.contains('chat-visible')) {
+                    console.log('FigPal: Escape -> Closing chat');
                     e.preventDefault();
                     e.stopPropagation();
                     container.classList.remove('chat-visible');
                     document.activeElement?.blur();
-                } else if (FP.state.isFollowing) {
+                } else if (FP.state.isFollowing || !container.classList.contains('resting')) {
+                    console.log('FigPal: Escape -> Releasing to Home');
                     e.preventDefault();
                     e.stopPropagation();
                     FP.state.isFollowing = false;
                     FP.state.isReturningHome = true;
-                } else if (!container.classList.contains('resting')) {
+                    container.classList.add('resting'); // Force resting visual if needed
+                } else {
+                    console.log('FigPal: Escape -> Waking up from resting');
                     e.preventDefault();
                     e.stopPropagation();
                     FP.state.isFollowing = true;
                     FP.state.isReturningHome = false;
+                    container.classList.remove('resting');
                 }
             }
         }, { capture: true });

@@ -25,11 +25,13 @@
         "modules/ai/client.js",
         "modules/ai/system-prompt.js",
         "modules/figma/data.js",
+        "modules/figma/plugin-bridge.js",
         "modules/onboarding/setup.js",
         "modules/chat/commands.js",
         "modules/chat/flow.js",
         "modules/character/physics.js",
         "modules/character/interactions.js",
+        "modules/figma/automation.js",
         "modules/core/injector.js",
         "content.js"
       ],

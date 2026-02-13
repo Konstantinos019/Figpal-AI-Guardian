@@ -1,6 +1,6 @@
 // modules/chat/renderer.js
 // Markdown parsing, message rendering, entity chips, action cards.
-// Exports: FigPal.chat = { addMessage, parseMarkdown, ICONS }
+// Exports: FigPal.chat = { addMessage, parseMarkdown, ICONS, bindActions }
 (function () {
     'use strict';
 
@@ -27,15 +27,24 @@
             return `<span class="figpal-chip type-${type.toLowerCase()}">${icon} ${name.trim()}</span>`;
         });
 
-        // 2. Action Cards: [[Action:Title]] ... [Btn:Event]
-        html = html.replace(/\[\[Action:([^\]]+)\]\]([\s\S]*?)\[([^\]]+):([^\]]+)\]/g, (match, title, desc, btnLabel, eventName) => {
+        // 2. Action Cards: [[Action:Title]] ... [Btn1:Event1] [Btn2:Event2]
+        html = html.replace(/\[\[Action:([^\]]+)\]\]([\s\S]*?)((?:\[[^\]]+:[^\]]+\]\s*)+)/g, (match, title, desc, buttons) => {
+            const buttonHtml = buttons.replace(/\[([^\]]+?):([^\]]+)\]/g, (btnMatch, btnLabel, eventName) => {
+                return `<button class="figpal-action-btn" data-event="${eventName.trim()}">${btnLabel.trim()}</button>`;
+            });
+
             return `
-         <div class="figpal-action-card">
-           <div class="action-title">${title.trim()}</div>
-           <div class="action-desc">${desc.trim().replace(/\n/g, '<br>')}</div>
-           <button class="figpal-action-btn" data-event="${eventName.trim()}">${btnLabel.trim()}</button>
-         </div>
-       `;
+          <div class="figpal-action-card">
+            <div class="action-title">${title.trim()}</div>
+            <div class="action-desc">${desc.trim().replace(/\n/g, '<br>')}</div>
+            <div class="action-buttons">${buttonHtml}</div>
+          </div>
+        `;
+        });
+
+        // 3. Quick Action Pills: ((Label:Event))
+        html = html.replace(/\(\(([^)]+?):([^)]+)\)\)/g, (match, label, event) => {
+            return `<button class="figpal-pill" data-event="${event.trim()}">${label.trim()}</button>`;
         });
 
         // 3. Standard Markdown
@@ -55,13 +64,127 @@
         return html;
     }
 
+    // ─── Bind Action Buttons ─────────────────────────────────────────────
+    function bindActions(container) {
+        if (!container) return;
+
+        // 1. Action Card Buttons
+        container.querySelectorAll('.figpal-action-btn').forEach(btn => {
+            if (btn.dataset.bound) return;
+            btn.dataset.bound = "true";
+            btn.addEventListener('click', (e) => handleActionEvent(e));
+        });
+
+        // 2. Quick Action Pills
+        container.querySelectorAll('.figpal-pill').forEach(pill => {
+            if (pill.dataset.bound) return;
+            pill.dataset.bound = "true";
+            pill.addEventListener('click', (e) => {
+                const text = (e.target.dataset.event || e.target.textContent).trim();
+                FP.emit('user-message', { text });
+                e.target.classList.add('figpal-pill-selected');
+            });
+        });
+    }
+
+    async function handleActionEvent(e) {
+        const eventName = (e.target.dataset.event || "").trim();
+        console.log('FigPal Actions: Logic Start for', eventName);
+
+        e.target.disabled = true;
+        e.target.textContent = 'Executing...';
+
+        // ─── Native Execution Logic ───
+        const isFix = eventName.startsWith('FIX:');
+        const cleanEvent = isFix ? eventName.substring(4) : eventName;
+
+        if (isNative) {
+            console.log('FigPal Actions: Routing to NATIVE', cleanEvent);
+
+            // Priority 1: Check commands.js (for things like LAUNCH_BRIDGE or AUDIT)
+            if (FP.commands && FP.commands.tryHandle(eventName)) {
+                e.target.textContent = 'Triggered 🚀';
+                e.target.style.background = '#22C55E';
+                e.target.style.color = 'white';
+                return;
+            }
+
+            // Priority 2: Native Node Updates (RENAME/CONTENT/FILL)
+            const [type, data] = cleanEvent.split('|');
+            const nodeId = FP.state.selectedNodeId;
+
+            if (nodeId && FP.pluginBridge?.isConnected) {
+                let updates = {};
+                if (type === 'RENAME') updates.name = data;
+                if (type === 'CONTENT') updates.characters = data;
+                if (type === 'FILL') {
+                    const fills = hexToFills(data);
+                    if (fills) updates.fills = fills;
+                }
+
+                if (updates.name || updates.characters || updates.fills) {
+                    try {
+                        const result = await FP.pluginBridge.updateNode(nodeId, updates);
+                        if (result?.success) {
+                            e.target.textContent = 'Applied ✅';
+                            e.target.style.background = '#22C55E';
+                            e.target.style.color = 'white';
+                            return;
+                        } else {
+                            e.target.textContent = 'Failed';
+                            e.target.style.background = '#EF4444';
+                            e.target.style.color = 'white';
+                            return;
+                        }
+                    } catch (err) {
+                        console.error('Action Error:', err);
+                        e.target.textContent = 'Error';
+                        e.target.style.background = '#EF4444';
+                        e.target.style.color = 'white';
+                        return;
+                    }
+                }
+            } else if (type === 'RENAME' || type === 'CONTENT' || type === 'FILL') {
+                // If it's a native fix but we are missing context/bridge
+                e.target.textContent = 'No Context';
+                e.target.style.background = '#F97316';
+                e.target.style.color = 'white';
+                return;
+            }
+        }
+
+        // Default fallback
+        e.target.textContent = 'Sent';
+        e.target.style.opacity = '0.7';
+        FP.emit('user-message', {
+            text: `[Action Confirmed: ${eventName}]`,
+            specificResponse: `Action ${eventName} confirmed.`
+        });
+    }
+
+    // --- Helpers ---
+    function hexToFills(hex) {
+        if (!hex) return null;
+        let cleanHex = hex.replace('#', '');
+        if (cleanHex.length === 3) {
+            cleanHex = cleanHex.split('').map(c => c + c).join('');
+        }
+        if (cleanHex.length !== 6) return null;
+
+        const r = parseInt(cleanHex.substring(0, 2), 16) / 255;
+        const g = parseInt(cleanHex.substring(2, 4), 16) / 255;
+        const b = parseInt(cleanHex.substring(4, 6), 16) / 255;
+
+        return [{
+            type: 'SOLID',
+            color: { r, g, b }
+        }];
+    }
+
     // ─── Message Renderer ────────────────────────────────────────────────
     function addMessage(text, sender, isThinking = false, isHtml = false) {
         const chatBubble = FP.state.elements.chatBubble;
-        if (!chatBubble) {
-            console.warn('FigPal: chatBubble not ready, cannot addMessage');
-            return { row: null, msgDiv: null, avatar: null };
-        }
+        if (!chatBubble) return { row: null, msgDiv: null, avatar: null };
 
         const contentArea = chatBubble.querySelector('.figpal-chat-content');
         const row = document.createElement('div');
@@ -69,8 +192,9 @@
 
         if (sender === 'bot') {
             const avatar = document.createElement('img');
-            avatar.src = FP.state.sprites.default;
-            avatar.classList.add('figpal-avatar');
+            avatar.className = 'figpal-avatar';
+            const FALLBACK = "https://raw.githubusercontent.com/josh-one/figpal/main/assets/ghost.png";
+            avatar.src = FP.state.sprites?.default || FALLBACK;
             row.appendChild(avatar);
         }
 
@@ -78,22 +202,9 @@
         msgDiv.classList.add('figpal-message', sender);
         if (isThinking) msgDiv.classList.add('thinking');
 
-        // Apply Markdown for bot messages if not already HTML
         if (sender === 'bot' && !isThinking && !isHtml) {
             msgDiv.innerHTML = parseMarkdown(text);
-
-            // Action Button Listeners
-            msgDiv.querySelectorAll('.figpal-action-btn').forEach(btn => {
-                btn.addEventListener('click', (e) => {
-                    const eventName = e.target.dataset.event;
-                    console.log('Action Clicked:', eventName);
-                    e.target.disabled = true;
-                    e.target.textContent = 'Sent';
-                    e.target.style.opacity = '0.7';
-                    FP.emit('user-message', { text: `[Action Confirmed: ${eventName}]`, specificResponse: `Action ${eventName} confirmed.` });
-                });
-            });
-
+            bindActions(msgDiv);
         } else if (isHtml) {
             msgDiv.innerHTML = text;
         } else {
@@ -110,5 +221,6 @@
     FP.chat = FP.chat || {};
     FP.chat.parseMarkdown = parseMarkdown;
     FP.chat.addMessage = addMessage;
+    FP.chat.bindActions = bindActions;
     FP.chat.ICONS = ICONS;
 })();

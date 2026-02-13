@@ -50,10 +50,10 @@
      */
     window.FigPal.once = function (event, fn) {
         const wrapper = function (data) {
-            FigPal.off(event, wrapper);
+            window.FigPal.off(event, wrapper);
             fn(data);
         };
-        FigPal.on(event, wrapper);
+        window.FigPal.on(event, wrapper);
     };
 
     // ─── Shared Mutable State ───────────────────────────────────────────
@@ -62,12 +62,13 @@
     window.FigPal.state = {
         // AI
         provider: 'gemini',
-        apiKey: null,
+        apiKeys: {}, // Map: { gemini: '...', grok: '...' }
         selectedModel: null,
         currentController: null,
 
         // Chat
         chatHistory: [],
+        skills: [], // Learned documentation snippets
         isThinking: false,
 
         // Figma context

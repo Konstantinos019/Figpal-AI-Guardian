@@ -3,5 +3,5 @@
 // Loaded last in manifest.json after all modules.
 (function () {
   'use strict';
-  FigPal.injector.start();
+  window.FigPal.injector.start();
 })();

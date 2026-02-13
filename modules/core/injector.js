@@ -83,7 +83,10 @@
         chatBubble.id = 'figpal-chat-bubble';
         chatBubble.innerHTML = `
       <div class="figpal-chat-header">
-        <span>DS Guardian</span>
+        <div class="figpal-header-left">
+          <span>DS Guardian</span>
+          <div id="figpal-connection-dot" class="figpal-status-dot" title="Bridge Status"></div>
+        </div>
         <select id="figpal-model-selector" title="Change AI Model"></select>
         <button class="figpal-close-btn" aria-label="Close chat">×</button>
       </div>
@@ -138,6 +141,37 @@
             toggleInputState(chatBubble, isThinking);
         });
 
+        // ─── Listen for plugin status → update dot ───────────────────────
+        FP.on('plugin-status', (data) => {
+            const dot = document.getElementById('figpal-connection-dot');
+            if (dot) {
+                if (data.connected) {
+                    dot.classList.add('connected');
+                } else {
+                    dot.classList.remove('connected');
+                }
+            }
+        });
+
+        // ─── Listen for selection updates → visual feedback ──────────────
+        FP.on('selection-updated', (selectionData) => {
+            const follower = FP.state.elements.follower;
+            if (!follower) return;
+
+            const selection = selectionData.nodes || selectionData;
+
+            if (selection && selection.length > 0) {
+                follower.classList.add('captured');
+                // Trigger a quick pulse to show we saw the selection
+                follower.classList.remove('figpal-selection-pulse');
+                void follower.offsetWidth; // flush CSS
+                follower.classList.add('figpal-selection-pulse');
+            } else {
+                follower.classList.remove('captured');
+                follower.style.filter = '';
+            }
+        });
+
         console.log('FigPal: Loaded successfully!');
     }
 
@@ -155,46 +189,49 @@
         const modelSelector = chatBubble.querySelector('#figpal-model-selector');
         if (!modelSelector) return;
 
-        function populateModels(models) {
+        function populateModels() {
+            const provider = FP.state.provider || 'gemini';
+            const cfg = FP.ai.PROVIDERS[provider];
+            if (!cfg) return;
+
             modelSelector.innerHTML = '';
-            models.forEach(m => {
+            cfg.models.forEach(m => {
                 const opt = document.createElement('option');
                 opt.value = m;
                 opt.textContent = m;
                 modelSelector.appendChild(opt);
             });
+
+            // Set current selection
+            if (FP.state.selectedModel && cfg.models.includes(FP.state.selectedModel)) {
+                modelSelector.value = FP.state.selectedModel;
+            } else {
+                modelSelector.value = cfg.models[0];
+                FP.state.selectedModel = cfg.models[0];
+            }
         }
 
-        // Load saved model list or use provider defaults
+        // Initialize
+        populateModels();
+
+        // Load saved selection
         chrome.storage.local.get(['selectedModel', 'provider'], (res) => {
-            const provider = res.provider || FP.state.provider || 'gemini';
-            const cfg = FP.ai.PROVIDERS[provider];
-            const models = cfg ? cfg.models : ['gemini-2.5-flash'];
-
-            populateModels(models);
-
-            if (res.selectedModel && models.includes(res.selectedModel)) {
-                modelSelector.value = res.selectedModel;
+            if (res.provider) FP.state.provider = res.provider;
+            if (res.selectedModel) {
                 FP.state.selectedModel = res.selectedModel;
-            } else {
-                modelSelector.value = models[0];
-                FP.state.selectedModel = models[0];
+                populateModels(); // Re-populate with correct models and select saved one
             }
         });
 
         modelSelector.addEventListener('change', (e) => {
             FP.state.selectedModel = e.target.value;
+            console.log(`FigPal: Model changed to ${FP.state.selectedModel}`);
             chrome.storage.local.set({ selectedModel: e.target.value });
         });
 
-        // Update model list when provider changes
+        // Refresh when provider changes (e.g., via /connect or setup)
         FP.on('setup-complete', (data) => {
-            const cfg = FP.ai.PROVIDERS[data.provider];
-            if (cfg) {
-                populateModels(cfg.models);
-                modelSelector.value = cfg.models[0];
-                FP.state.selectedModel = cfg.models[0];
-            }
+            populateModels();
         });
     }
 

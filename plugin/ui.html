@@ -1,0 +1,232 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background: #FFFFFF;
+            margin: 0;
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+            overflow: hidden;
+            border-radius: 12px;
+        }
+
+        /* Content (12px padding - from MCP) */
+
+        /* Content (12px padding - from MCP) */
+        .content {
+            padding: 12px;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            flex-grow: 1;
+        }
+
+        /* Bridge Section (5px py - from MCP) */
+        .bridge-viz {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 5px 0;
+            width: 100%;
+        }
+
+        .logo-box {
+            width: 16px;
+            height: 16px;
+        }
+
+        .connector {
+            flex-grow: 1;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 0 8px;
+        }
+
+        .line {
+            flex-grow: 1;
+            height: 1px;
+            background: #E6E6E6;
+            position: relative;
+        }
+
+        .line.solid::after {
+            content: '';
+            position: absolute;
+            height: 100%;
+            width: 0%;
+            background: #0ACF83;
+            left: 0;
+            transition: width 0.3s ease;
+        }
+
+        .connected .line.solid::after {
+            width: 100%;
+        }
+
+        /* Icon Colors from MCP */
+        .viz-icon {
+            font-size: 16px;
+            color: #C05B04;
+            /* hourglass brown */
+        }
+
+        .connected .viz-icon {
+            color: #0ACF83;
+            /* check circle green */
+        }
+
+        .line.dotted {
+            border-bottom: 2px dotted #CCCCCC;
+            background: none;
+            height: 0;
+        }
+
+        /* Bottom Row (12px gap - from MCP) */
+        .status-row {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            width: 100%;
+        }
+
+        /* Badge Specs from MCP */
+        .badge {
+            background: #FFF5E3;
+            color: #C05B04;
+            padding: 4px 6px;
+            border-radius: 6px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 10px;
+            font-weight: 500;
+        }
+
+        .connected .badge {
+            background: #E6F4EA;
+            color: #1E8E3E;
+        }
+
+        .selection-label {
+            font-size: 10px;
+            color: #999;
+            flex-grow: 1;
+            text-align: right;
+        }
+    </style>
+</head>
+
+<body class="waiting">
+    <div class="content">
+        <div class="bridge-viz">
+            <div class="logo-box">
+                <svg width="16" height="16" viewBox="0 0 24 36" fill="none">
+                    <path d="M6 0C2.68629 0 0 2.68629 0 6C0 9.31371 2.68629 12 6 12H12V6C12 2.68629 9.31371 0 6 0Z"
+                        fill="#F24E1E" />
+                    <path d="M12 12H6C2.68629 12 0 14.6863 0 18C0 21.3137 2.68629 24 6 24H12V12Z" fill="#A259FF" />
+                    <path
+                        d="M0 30C0 26.6863 2.68629 24 6 24H12V30C12 33.3137 9.31371 36 6 36C2.68629 36 0 33.3137 0 30Z"
+                        fill="#0ACF83" />
+                    <path d="M24 18C24 14.6863 21.3137 12 18 12H12V24H18C21.3137 24 24 21.3137 24 18Z" fill="#1ABCFE" />
+                    <path
+                        d="M24 6C24 2.68629 21.3137 0 18 0C14.6863 0 12 2.68629 12 6V12H18C21.3137 12 24 9.31371 24 6Z"
+                        fill="#FF7262" />
+                </svg>
+            </div>
+
+            <div class="connector">
+                <div class="line solid"></div>
+                <div class="viz-icon" id="viz-icon">⌛</div>
+                <div class="line dotted"></div>
+            </div>
+
+            <div class="logo-box">
+                <img id="main-avatar" src="https://raw.githubusercontent.com/josh-one/figpal/main/assets/ghost.png"
+                    width="18" height="18">
+            </div>
+        </div>
+
+        <div class="status-row">
+            <div class="badge" id="status-badge">
+                <span id="badge-icon">↻</span>
+                <span id="status-text">Waiting for extension</span>
+            </div>
+            <div class="selection-label" id="selection-stats">No selection active</div>
+        </div>
+    </div>
+
+    <script>
+        const mainAvatar = document.getElementById('main-avatar');
+        const statusText = document.getElementById('status-text');
+        const badgeIcon = document.getElementById('badge-icon');
+        const vizIcon = document.getElementById('viz-icon');
+        const selectionStats = document.getElementById('selection-stats');
+
+        const DEFAULT_GHOST = "https://raw.githubusercontent.com/josh-one/figpal/main/assets/ghost.png";
+
+        // Use window.top for extension bridge, parent for backend code.js
+        function broadcastReady() {
+            window.top.postMessage({ source: 'figpal-plugin', type: 'plugin-ready' }, '*');
+        }
+        broadcastReady();
+        const bootInterval = setInterval(broadcastReady, 2000);
+
+        let selectionTimer;
+
+        window.onmessage = (event) => {
+            const data = event.data;
+
+            // From Extension (Handshake)
+            if (data && data.source === 'figpal-extension') {
+                clearInterval(bootInterval);
+                document.body.className = 'connected';
+                statusText.textContent = 'Extension connected';
+                badgeIcon.textContent = '✓';
+                vizIcon.textContent = '⚡';
+
+                // If this was a request, forward to backend code.js
+                if (data.type && data.type !== 'handshake-ack') {
+                    parent.postMessage({ pluginMessage: data }, '*');
+                }
+            }
+
+            // From Plugin Backend (code.js)
+            const msg = data.pluginMessage;
+            if (!msg) return;
+
+            if (msg.type === 'selection-change-triggered') {
+                if (selectionTimer) clearTimeout(selectionTimer);
+                selectionTimer = setTimeout(() => {
+                    parent.postMessage({ pluginMessage: { type: 'get-selection', id: 'auto-stream' } }, '*');
+                }, 400);
+            }
+
+            if (msg.type === 'response' || msg.type === 'selection-changed') {
+                const nodes = msg.data?.nodes || msg.data;
+                const image = msg.data?.image;
+
+                if (Array.isArray(nodes)) {
+                    selectionStats.textContent = nodes.length > 0
+                        ? `Selection: ${nodes.length} ${nodes.length === 1 ? 'node' : 'nodes'}`
+                        : 'No selection active';
+                }
+
+                if (image && mainAvatar) {
+                    mainAvatar.src = image;
+                } else if (mainAvatar) {
+                    mainAvatar.src = DEFAULT_GHOST;
+                }
+
+                // Stream to extension (via window.top)
+                window.top.postMessage({ source: 'figpal-plugin', ...msg }, '*');
+            }
+        };
+    </script>
+</body>
+
+</html>

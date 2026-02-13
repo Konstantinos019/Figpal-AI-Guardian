@@ -1,0 +1,22 @@
+{
+    "name": "FigPal Guardian Bridge",
+    "id": "1603908393685404099",
+    "api": "1.0.0",
+    "main": "code.js",
+    "ui": "ui.html",
+    "capabilities": [],
+    "enableProposedApi": false,
+    "documentAccess": "dynamic-page",
+    "editorType": [
+        "figma",
+        "figjam"
+    ],
+    "networkAccess": {
+        "allowedDomains": [
+            "https://generativelanguage.googleapis.com",
+            "https://api.x.ai",
+            "https://api.openai.com",
+            "https://api.anthropic.com"
+        ]
+    }
+}
