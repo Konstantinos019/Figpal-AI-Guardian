@@ -108,9 +108,10 @@
     function showWelcomeMessage() {
         const providerName = FP.ai.PROVIDERS[FP.state.provider]?.name || FP.state.provider;
         const isPluginConnected = FP.pluginBridge && FP.pluginBridge.isConnected;
+        const palName = (FP.state.activePal && FP.state.activePal.name) ? FP.state.activePal.name : "FigBot";
 
         FP.chat.addMessage(
-            `Hey! I'm your DS Guardian 🛡️ powered by **${providerName}**.\n\n` +
+            `Hey! I'm **${palName}** 🛡️ (powered by **${providerName}**).\n\n` +
             `I can help you:\n` +
             `- **Analyze** your Figma selections ${isPluginConnected ? '**(Native ✅)**' : ''}\n` +
             `- **Check** design system compliance\n` +

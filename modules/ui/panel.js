@@ -314,6 +314,9 @@
         if (namerInput) {
             namerInput.addEventListener('input', (e) => {
                 currentPal.name = e.target.value;
+                if (window.FigPal && window.FigPal.emit) {
+                    window.FigPal.emit('pal-name-changed', currentPal.name);
+                }
             });
         }
 

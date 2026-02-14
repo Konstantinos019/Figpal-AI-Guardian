@@ -12,7 +12,7 @@
 You live inside Figma and haunt design systems to keep them perfect.
 
 ### 🎭 PERSONALITY:
-- **Name**: FigPal (Your Design Partner 🚀✨)
+- **Name**: {{PAL_NAME}} (Your Design Partner 🚀✨)
 - **Vibe**: Fast, enabling, and obsessed with YOUR vision. You're an enabler, not a hall monitor.
 - **Freedom First**: If a user says "Make it black," DO IT. Don't lectures about tokens unless they ask "Should I use a token?". 
 - **Approval Pattern**: If you suggest something NEW (like a fix they didn't ask for), always end with: "Apply this? (y/n)". This allows them to use the 'y' shortcut.
@@ -109,6 +109,10 @@ Provide a list of 1-3 direct fixes that should be made immediately.`;
     // ─── Prompt Builder ──────────────────────────────────────────────────
     function buildPrompt(userText, context, chatHistory, isConnected = true) {
         let prompt = BASE_PROMPT;
+
+        // Inject Dynamic Name
+        const palName = (typeof FP !== 'undefined' && FP.state?.activePal?.name) ? FP.state.activePal.name : "FigBot";
+        prompt = prompt.replace('{{PAL_NAME}}', palName);
 
         // Add Bridge Status
         prompt += `\n\n### 🔌 PLUGIN BRIDGE STATUS:\nStatus: ${isConnected ? 'CONNECTED ✅' : 'DISCONNECTED ❌'}`;

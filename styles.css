@@ -29,19 +29,62 @@ body.figpal-disabled #figpal-home {
 /* Home / Signpost */
 #figpal-home {
   position: fixed;
-  /* Resting Offset Nudge (Match the resting state logic) */
-  left: calc(50% + 180px);
+  left: var(--figpal-resting-left, calc(50% + 180px));
+  /* Base position, will be nudged by JS */
   bottom: 60px;
   transform: translateX(-50%);
-  width: 105px;
-  height: 62px;
+  /* Allow auto width */
+  width: auto;
+  height: 25.8px;
+  /* Height from Figma */
   pointer-events: none;
   z-index: 10;
-  /* Lowered from 99998 to sit behind the toolbar */
   opacity: 0;
   visibility: hidden;
   transition: opacity 0.3s ease-out, visibility 0.3s;
-  /* border: 1px solid red; /* Debug: remove if seen */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  white-space: nowrap;
+  /* Keep it on one line */
+}
+
+.figpal-sign-left,
+.figpal-sign-right {
+  width: 14.03px;
+  /* From Figma */
+  height: 100%;
+  background-size: contain;
+  background-repeat: no-repeat;
+  flex-shrink: 0;
+}
+
+.figpal-sign-mid {
+  height: 100%;
+  background-color: #DCAB6E;
+  /* Wood color */
+  border-top: 1.684px solid black;
+  border-bottom: 1.684px solid black;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 4px;
+  /* Slight padding around text */
+  /* Remove gaps */
+  margin-left: -0.5px;
+  margin-right: -0.5px;
+}
+
+#figpal-home-text {
+  font-family: 'Poppins', sans-serif;
+  /* From Figma */
+  font-weight: 600;
+  font-size: 9px;
+  color: #000000;
+  text-align: center;
+  position: relative;
+  top: 1px;
+  /* Visual tweak */
 }
 
 /* Show home only when the container is NOT resting (is following) */
@@ -121,13 +164,13 @@ body.figpal-disabled #figpal-home {
 /* Resting State (Before clicking) */
 #figpal-container.resting {
   /* Override the fixed position from JS */
-  left: calc(50% + 180px) !important;
+  left: var(--figpal-resting-left, calc(50% + 180px)) !important;
   /* Center + offset (nudged left another 20px) */
   top: auto !important;
   bottom: 80px !important;
   /* Raised to 80px */
-  transform: none !important;
-  /* No cursor offset */
+  transform: translateX(-50%) !important;
+  /* Center alignment relative to the point */
   z-index: 100000;
   /* Ensure on top of everything when resting */
   /* Transition removed to let JS handle the smooth return without conflict */

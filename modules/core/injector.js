@@ -31,6 +31,10 @@
 
             // 2. Main Injection Logic
             const toolbarWrapper = document.querySelector('[data-testid="design-toolbelt-wrapper"]');
+
+            // Align to Toolbar Mode Switcher
+            alignToToolbar();
+
             const targetElement = toolbarWrapper || document.querySelector('[data-testid="objects-panel"]');
 
             if (targetElement) {
@@ -38,6 +42,21 @@
                 injectToolbarButton(toolbarWrapper);
             }
         }, 1000);
+    }
+
+    // ─── Alignment Logic ─────────────────────────────────────────────────
+    function alignToToolbar() {
+        // Target the "Design / Dev Mode" toggle pill
+        const switcher = document.querySelector('[data-testid="toolbelt-mode-segmented-control"]') ||
+            document.querySelector('.toolbelt_mode_segmented_control--fieldset--eZKfl');
+
+        if (switcher) {
+            const rect = switcher.getBoundingClientRect();
+            const centerX = rect.left + (rect.width / 2);
+
+            // Update CSS variable
+            document.documentElement.style.setProperty('--figpal-resting-left', `${centerX}px`);
+        }
     }
 
     function injectToolbarButton(toolbarWrapper) {
@@ -197,16 +216,39 @@
             default: defaultSprite,
             thinking: thinkingSprite,
             home: homeSprite,
+            homeEmpty: chrome.runtime.getURL('assets/home_empty.svg'),
+            signLeft: chrome.runtime.getURL('assets/sign_left.svg'),
+            signRight: chrome.runtime.getURL('assets/sign_right.svg')
         };
 
         // Container
         const container = document.createElement('div');
         container.id = 'figpal-container';
 
-        // Home signpost
-        const home = document.createElement('img');
+        // Home signpost (Smart Component)
+        const home = document.createElement('div');
         home.id = 'figpal-home';
-        home.src = homeSprite;
+
+        const left = document.createElement('div');
+        left.className = 'figpal-sign-left';
+        left.style.backgroundImage = `url(${FP.state.sprites.signLeft})`;
+
+        const mid = document.createElement('div');
+        mid.className = 'figpal-sign-mid';
+
+        const right = document.createElement('div');
+        right.className = 'figpal-sign-right';
+        right.style.backgroundImage = `url(${FP.state.sprites.signRight})`;
+
+        const homeText = document.createElement('span');
+        homeText.id = 'figpal-home-text';
+        homeText.textContent = "FigBot"; // Default
+
+        mid.appendChild(homeText);
+
+        home.appendChild(left);
+        home.appendChild(mid);
+        home.appendChild(right);
 
         // Follower character (Layered container)
         const follower = document.createElement('div');
@@ -220,7 +262,7 @@
             <div class="figpal-chat-header">
         <div class="figpal-resizer left"></div>
         <div class="figpal-header-left">
-          <span>DS Guardian</span>
+          <span id="figpal-header-name">DS Guardian</span>
           <div id="figpal-connection-dot" class="figpal-status-dot" title="Bridge Status"></div>
         </div>
         <div class="figpal-header-actions">
@@ -306,8 +348,14 @@
             if (result.activePal) {
                 FP.state.activePal = result.activePal;
                 console.log('FigPal: Loaded activePal from storage', FP.state.activePal);
+                updatePalName(FP.state.activePal.name);
             }
             reRenderFollower();
+        });
+
+        // ─── Listen for Name Updates ─────────────────────────────────────
+        FP.on('pal-name-changed', (newName) => {
+            updatePalName(newName);
         });
 
         // ─── Wire up UI ──────────────────────────────────────────────────
@@ -636,6 +684,29 @@
         }
 
         FP.state.elements.follower.innerHTML = FP.sprite.assemble(options);
+    }
+
+    function updatePalName(name) {
+        const safeName = name || "FigBot";
+
+        // 1. Update Chat Header
+        const headerName = document.getElementById('figpal-header-name');
+        if (headerName) {
+            headerName.textContent = safeName;
+        }
+
+        // 2. Update Signpost
+        const homeText = document.getElementById('figpal-home-text');
+        if (homeText) {
+            homeText.textContent = safeName;
+        }
+
+        // 3. Update Toolbar Tooltip
+        const toolbarBtn = document.querySelector('.figpal-toolbar-btn');
+        if (toolbarBtn) {
+            toolbarBtn.setAttribute('aria-label', safeName);
+            toolbarBtn.setAttribute('data-tooltip', safeName);
+        }
     }
 
     // ─── Export ──────────────────────────────────────────────────────────
