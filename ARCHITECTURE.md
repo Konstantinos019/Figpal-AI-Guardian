@@ -25,11 +25,16 @@ FigPal is a hybrid Chrome Extension + Figma Plugin system. It injects a companio
 
 **Audit Status:**
 - ✅ **Strengths:** Robust sprite system, high-fidelity UI, persistent state (`chrome.storage.local`).
-- ⚠️ **Watchlist:** `panel.js` is becoming large; consider splitting UI event handlers from state logic in future refactors.
+- ⚠️ **Watchlist (panel.js Complexity):**
+    - **Current State:** `panel.js` (~500 lines) currently handles *rendering* HTML, *listening* for DOM events, and *managing* character state all in one file.
+    - **Risk:** As we add more tabs or features, this file will become unmaintainable ("Spaghetti Code").
+    - **Recommendation:** Split into `ui-renderer.js` (View), `state-manager.js` (Model), and `event-handlers.js` (Controller) to separate concerns.
 
 ### B. Backend Agent (The "Brain")
 **Role:** Handles AI processing, prompt engineering, and chat flow.
-- **Location:** `modules/chat/` & `modules/ai/`
+- **Location:** **Extension Environment (Browser Context)**.
+    - *Clarification:* The "Brain" is not a remote server we own. It is JavaScript code running locally in the user's Chrome browser (`modules/chat/` & `modules/ai/`).
+    - It acts as an **Agent** by orchestrating calls to external LLM APIs (Gemini/OpenAI) and deciding when to use the "Hands" (Plugin).
 - **Key Modules:**
     - `modules/chat/flow.js`: **[CRITICAL]** The central nervous system. Routes messages, triggers "Thinking" states, and decides between Plugin interactions (Action) vs. Pure Chat. **Recently refactored to unify AI calls to the extension.**
     - `modules/ai/client.js`: Handles API calls to Gemini/OpenAI/Claude. Contains the `sendToAI` logic and the "Extension Brain" fetch implementation.
