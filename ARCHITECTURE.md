@@ -150,3 +150,26 @@ FigPal is a hybrid Chrome Extension + Figma Plugin system. It injects a companio
 2.  **State Management:** Currently, state is scattered across `FP.state` and module-level variables. A centralized store (like a lightweight Redux or Signal implementation) would make debugging easier.
 3.  **Test Suite:** We lack automated tests for the Bridge. A mock Figma environment for testing `plugin-bridge.js` would effectively guard against connection regressions.
 4.  **Plugin Context Optimization**: `simplifyNode` should be optimized to token-count limits to ensure we don't overflow the context window on large selections.
+
+---
+
+## 6. Long-Term Vision: Remote Brain?
+
+**Question:** Can we host the Backend Brain remotely in the future?
+**Answer:** Yes, this is the natural path for scaling.
+
+### "Extension Brain" (Current) vs. "Remote Brain" (Future)
+
+| Feature | Current (Local Extension) | Future (Remote Server) |
+| :--- | :--- | :--- |
+| **Privacy** | 🔒 **High** (Data stays on device) | ⚠️ **Medium** (Data flows through our server) |
+| **Cost** | 💸 **Free** (User pays for API) | 💰 **Expensive** (We pay for GPU/API) |
+| **Secrets** | 🔓 **Exposed** (User inputs keys) | 🔒 **Hidden** (We manage keys securely) |
+| **Power** | 🔋 **Limited** (Browser tab resource limits) | ⚡ **Unlimited** (Can run Agents/LangChain) |
+| **Updates** | 🐢 **Slow** (Extension Review Process) | 🚀 **Instant** (Deploy to server anytime) |
+
+**Migration Path:**
+1.  Build a Node.js/Python backend (e.g., Fastify or FastAPI).
+2.  Move `client.js` logic to the server.
+3.  Update the Extension to `detch('https://api.figpal.ai/chat', ...)` instead of calling OpenAI directly.
+4.  Implement user authentication (e.g., Supabase Auth) to meter usage.
