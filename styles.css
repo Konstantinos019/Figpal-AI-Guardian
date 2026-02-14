@@ -18,7 +18,9 @@
 
 /* Global Disabled State - Hides everything regarding the pal */
 body.figpal-disabled #figpal-container,
-body.figpal-disabled #figpal-home {
+body.figpal-disabled #figpal-home,
+body.figpal-ui-hidden #figpal-container,
+body.figpal-ui-hidden #figpal-home {
   display: none !important;
   opacity: 0 !important;
   pointer-events: none !important;
@@ -290,6 +292,51 @@ body.figpal-disabled #figpal-home {
 
 .figpal-header-btn:hover {
   background-color: #E5E5E5;
+}
+
+/* Dev Mode Styling Parity */
+body.figpal-dev-mode .figpal-chat-header {
+  background: #1e1e1e;
+  border-bottom: 1px solid #333;
+}
+
+body.figpal-dev-mode .figpal-header-left span {
+  color: #ffffff;
+}
+
+body.figpal-dev-mode .figpal-header-btn {
+  color: #ffffff;
+}
+
+body.figpal-dev-mode .figpal-header-btn:hover {
+  background-color: rgba(255, 255, 255, 0.1);
+}
+
+body.figpal-dev-mode .figpal-chat-content {
+  background: #2c2c2c;
+  color: #ffffff;
+}
+
+body.figpal-dev-mode .figpal-message.bot {
+  color: #ffffff;
+}
+
+body.figpal-dev-mode .figpal-message.user {
+  background: #3e3e3e;
+  color: #ffffff;
+}
+
+body.figpal-dev-mode .figpal-chat-input-area,
+body.figpal-dev-mode .figpal-chat-footer {
+  background: #2c2c2c;
+}
+
+body.figpal-dev-mode .figpal-chat-input-area input {
+  background: #1e1e1e;
+  color: #ffffff;
+  border-color: #00d37e;
+  /* Dev Mode Green */
+  box-shadow: 0 0 0 1px #00d37e;
 }
 
 .figpal-close-btn {

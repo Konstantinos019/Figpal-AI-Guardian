@@ -46,16 +46,32 @@
 
     // ─── Alignment Logic ─────────────────────────────────────────────────
     function alignToToolbar() {
-        // Target the "Design / Dev Mode" toggle pill
+        const toolbarWrapper = document.querySelector('[data-testid="design-toolbelt-wrapper"]');
+
+        // 1. Check for "Hide UI" (Cmd+\)
+        const isUiHidden = toolbarWrapper ? window.getComputedStyle(toolbarWrapper).visibility === 'hidden' : true;
+        document.body.classList.toggle('figpal-ui-hidden', isUiHidden);
+
+        if (isUiHidden) return;
+
+        // 2. Detect Dev Mode (UI3)
+        // Figma sets data-base-mode or data-active-mode on the wrapper
+        const isDevMode = toolbarWrapper.getAttribute('data-base-mode') === 'handoff' ||
+            toolbarWrapper.getAttribute('data-active-mode') === 'handoff' ||
+            !!document.querySelector('.handoff');
+
+        document.body.classList.toggle('figpal-dev-mode', isDevMode);
+
+        // 3. Target the "Design / Dev Mode" toggle pill for centering
         const switcher = document.querySelector('[data-testid="toolbelt-mode-segmented-control"]') ||
             document.querySelector('.toolbelt_mode_segmented_control--fieldset--eZKfl');
 
         if (switcher) {
             const rect = switcher.getBoundingClientRect();
-            const centerX = rect.left + (rect.width / 2);
-
-            // Update CSS variable
-            document.documentElement.style.setProperty('--figpal-resting-left', `${centerX}px`);
+            if (rect.width > 0) {
+                const centerX = rect.left + (rect.width / 2);
+                document.documentElement.style.setProperty('--figpal-resting-left', `${centerX}px`);
+            }
         }
     }
 
