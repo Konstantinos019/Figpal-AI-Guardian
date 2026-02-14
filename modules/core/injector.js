@@ -208,11 +208,10 @@
         home.id = 'figpal-home';
         home.src = homeSprite;
 
-        // Follower character
-        const follower = document.createElement('img');
+        // Follower character (Layered container)
+        const follower = document.createElement('div');
         follower.id = 'figpal-follower';
-        follower.src = defaultSprite;
-        follower.onerror = () => console.error('FigPal: Could not load image from', follower.src);
+        // Initial render will be handled by reRenderFollower
 
         // Chat bubble
         const chatBubble = document.createElement('div');
@@ -301,6 +300,9 @@
 
         // Store refs
         FP.state.elements = { container, follower, chatBubble, home };
+
+        // Render Initial state (Active Pal)
+        reRenderFollower();
 
         // ─── Wire up UI ──────────────────────────────────────────────────
         wireCloseButton(chatBubble, container);
@@ -611,6 +613,25 @@
         }
     }
 
+    function reRenderFollower() {
+        if (!FP.state.elements.follower || !FP.sprite?.assemble) return;
+
+        // Use activePal from state or default if not set
+        const pal = FP.state.activePal || {
+            category: "Object",
+            subType: "Rock",
+            colorName: "Gray"
+        };
+
+        // If thinking, inject Lightbulb accessory
+        const options = { ...pal };
+        if (FP.state.isThinking) {
+            options.accessory = "Lightbulb";
+        }
+
+        FP.state.elements.follower.innerHTML = FP.sprite.assemble(options);
+    }
+
     // ─── Export ──────────────────────────────────────────────────────────
-    FP.injector = { start };
+    FP.injector = { start, reRenderFollower };
 })();

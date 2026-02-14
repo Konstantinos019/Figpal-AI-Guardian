@@ -94,13 +94,11 @@
         animate();
     };
 
-    // ─── Listen for thinking state → swap sprites ────────────────────────
+    // ─── Listen for thinking state → re-render with lightbulb ────────────
     FP.on('ai-thinking', (isThinking) => {
         FP.state.isThinking = isThinking;
-        const follower = FP.state.elements.follower;
-        if (!follower) return;
-
-        // Follower IS the img tag, swap directly
-        follower.src = isThinking ? FP.state.sprites.thinking : FP.state.sprites.default;
+        if (FP.injector && FP.injector.reRenderFollower) {
+            FP.injector.reRenderFollower();
+        }
     });
 })();

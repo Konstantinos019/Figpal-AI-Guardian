@@ -40,6 +40,16 @@
             "Tophat", "WitchHat", "WizardHat"
         ];
 
+        // Load saved state
+        chrome.storage.local.get(['activePal'], (res) => {
+            if (res.activePal) {
+                Object.assign(currentPal, res.activePal);
+                FP.state.activePal = { ...currentPal };
+                renderPreview();
+                if (FP.injector?.reRenderFollower) FP.injector.reRenderFollower();
+            }
+        });
+
         const cycleSubType = (direction) => {
             const types = subTypeRegistry[currentPal.category] || ["Rock"];
             let idx = types.indexOf(currentPal.subType);
@@ -218,6 +228,25 @@
                 currentPal.color = dot.dataset.color;
                 currentPal.colorName = dot.dataset.colorName;
                 renderPreview();
+            });
+        });
+
+        // Save Button logic
+        overlay.querySelector('.figpal-main-save-btn').addEventListener('click', () => {
+            console.log('FigPal: Saving active pal...', currentPal);
+            FP.state.activePal = { ...currentPal };
+            chrome.storage.local.set({ activePal: currentPal }, () => {
+                if (FP.injector?.reRenderFollower) {
+                    FP.injector.reRenderFollower();
+                }
+                const btn = overlay.querySelector('.figpal-main-save-btn');
+                const oldText = btn.textContent;
+                btn.textContent = 'Saved!';
+                btn.classList.add('saved');
+                setTimeout(() => {
+                    btn.textContent = oldText;
+                    btn.classList.remove('saved');
+                }, 2000);
             });
         });
 

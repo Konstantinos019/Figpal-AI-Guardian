@@ -59,17 +59,14 @@
         // 2. Accessory Layer
         if (accessory && accessory !== "None") {
             // Determine position based on pal family
-            // Default to "Top" for Object families per user request
             let position = "Top";
-
-            // If we ever have specific offsets per subtype, we can define them here
-            // For now, "Top" is the standard for Object category
+            if (category === "Object") position = "Top";
+            else if (category === "Animal") position = "Top";
+            else if (category === "Food") position = "Bottom";
+            else if (category === "Figma") position = "Top";
 
             const accessoryUrl = getAsset(`assets/Accessories/${position}/${accessory}.svg`);
 
-            // Positioning container for the accessory
-            // Note: Different subtypes might eventually need different 'top/left' tweaks
-            // For Object, "Top" usually means it sits on top.
             layersHtml += `<img src="${accessoryUrl}" onerror="${errLog}" style="position:absolute; inset:0; width:100%; height:100%; object-fit:contain; z-index:5;">`;
         }
 
