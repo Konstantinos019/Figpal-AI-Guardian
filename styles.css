@@ -1220,7 +1220,7 @@ body.resizing #react-page,
 
 .figpal-panel-container {
   width: 508px;
-  height: 380px;
+  height: 420px;
   background: #FFFFFF;
   border-radius: 12px;
   box-shadow: 0 12px 48px rgba(0, 0, 0, 0.25);
@@ -1486,9 +1486,10 @@ body.resizing #react-page,
 
 /* Namer Row */
 .figpal-namer-row {
-  width: 157px;
-  height: 31px;
+  width: 156px;
+  height: 35px;
   background: #F5F5F5;
+  border: 0.5px solid #E6E6E6;
   border-radius: 4px;
   display: flex;
   align-items: center;
@@ -1501,13 +1502,20 @@ body.resizing #react-page,
   border: none;
   background: transparent;
   text-align: center;
-  font-size: 11px;
+  font-family: 'Inter', sans-serif;
+  font-weight: 600;
+  /* Semi Bold */
+  font-size: 9px;
   color: #1A1A1A;
+  /* Keeping user text dark for readability */
   outline: none;
+  letter-spacing: -0.18px;
 }
 
 .figpal-namer-input::placeholder {
-  color: #BABABA;
+  color: #ABABAB;
+  /* Matches Figma */
+  font-weight: 600;
 }
 
 /* Sidebar */
