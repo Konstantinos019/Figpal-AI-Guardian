@@ -168,7 +168,7 @@
                     <div class="figpal-panel-sidebar">
                         <div class="figpal-sidebar-card">
                             <div class="figpal-setting-toggle">
-                                <div class="figpal-switch active">
+                                <div class="figpal-switch ${localStorage.getItem('figpal-enabled') === 'false' ? '' : 'active'}">
                                     <div class="figpal-switch-thumb">
                                         <!-- Stripes / Texture Placeholder -->
                                     </div>
@@ -220,6 +220,25 @@
             });
         });
 
+        // Toggle switch logic
+        overlay.querySelector('.figpal-switch').addEventListener('click', () => {
+            const sw = overlay.querySelector('.figpal-switch');
+            const isActive = sw.classList.toggle('active');
+            localStorage.setItem('figpal-enabled', isActive ? 'true' : 'false');
+
+            if (isActive) {
+                document.body.classList.remove('figpal-disabled');
+            } else {
+                document.body.classList.add('figpal-disabled');
+            }
+
+            // Trigger injector update for toolbar buttons
+            if (FP.injector && FP.injector.updateToolbarBtnState) {
+                // Though updateToolbarBtnState is usually internal to injector, 
+                // we can export it if needed or just let the MutationObserver in injector handle it.
+            }
+        });
+
         // Color dot interactivity
         overlay.querySelectorAll('.color-dot').forEach(dot => {
             dot.addEventListener('click', () => {
@@ -246,7 +265,9 @@
                 setTimeout(() => {
                     btn.textContent = oldText;
                     btn.classList.remove('saved');
-                }, 2000);
+                    // Close panel after saving
+                    toggle(false);
+                }, 1000); // Shortened duration since we are closing
             });
         });
 
