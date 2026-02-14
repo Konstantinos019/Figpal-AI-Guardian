@@ -88,6 +88,24 @@
 
     // ─── Send to AI ──────────────────────────────────────────────────────
     async function sendToAI(prompt) {
+        // Inject VFS Context (if applicable)
+        if (FP.vfs && FP.vfs.rootName) {
+            const summary = FP.vfs.getContextSummary();
+            if (summary) {
+                const contextMsg = `\n\nCONTEXT: The user has loaded a local codebase (${FP.vfs.rootName}).\n${summary}\n\nTo read a file, ask the user to read it, or use the \`read_file\` tool if available.`;
+
+                if (typeof prompt === 'string') {
+                    prompt += contextMsg;
+                } else if (typeof prompt === 'object' && prompt.messages) {
+                    // For object prompts (Plugin Brain or Structured), append to last user message
+                    const lastMsg = prompt.messages[prompt.messages.length - 1];
+                    if (lastMsg && lastMsg.role === 'user') {
+                        lastMsg.content += contextMsg;
+                    }
+                }
+            }
+        }
+
         const provider = FP.state.provider || 'gemini';
         const apiKey = FP.state.apiKeys[provider];
         const selectedModel = FP.state.selectedModel;

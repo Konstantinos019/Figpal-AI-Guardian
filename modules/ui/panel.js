@@ -28,10 +28,22 @@
 
         const subTypeRegistry = {
             "Object": ["Rock", "Cloud", "Star", "Mushroom", "Flower", "Bus", "Poo", "Ball", "Rainbow"],
-            "Animal": ["Rock"], // Placeholder
-            "Food": ["Rock"],   // Placeholder
-            "Figma": ["Rock"]   // Placeholder
+            "Animal": ["Capybara", "Bird", "Rodent", "Dog", "Cat", "Caterpillar", "Duck", "Frog", "Fish", "Pufferfish", "Snail", "Elephant", "Snake"],
+            "Food": ["Pancake", "Coffee", "Onigiri", "Veggie", "Pizza", "Bao", "Bread", "Sushi", "Boba", "Fruit", "Coconut", "Egg"],
+            "Figma": ["Heart", "Pencil", "Comment", "Library", "Overlap", "Union", "Pen", "Pointer", "Figma"]
         };
+
+        const colorRegistry = [
+            { name: "Red", hex: "#cc5d5d" },
+            { name: "Orange", hex: "#e89f5d" },
+            { name: "Yellow", hex: "#f2db6d" },
+            { name: "Green", hex: "#a0c273" },
+            { name: "Blue", hex: "#8eb7cc" },
+            { name: "Purple", hex: "#ae8fcc" },
+            { name: "Pink", hex: "#e58fcc" },
+            { name: "Gray", hex: "#949494" },
+            { name: "Black", hex: "#3d3d3d" }
+        ];
 
         const accessoryRegistry = [
             "None", "Angry", "Antennae", "BeigeHat", "BlueHat", "Candle", "Excitement", "Flower",
@@ -45,6 +57,11 @@
             if (res.activePal) {
                 Object.assign(currentPal, res.activePal);
                 FP.state.activePal = { ...currentPal };
+
+                // Update Name Input
+                const nameInput = overlay.querySelector('.figpal-namer-input');
+                if (nameInput) nameInput.value = currentPal.name || "FigBot";
+
                 renderPreview();
                 if (FP.injector?.reRenderFollower) FP.injector.reRenderFollower();
             }
@@ -67,6 +84,48 @@
             idx = (idx + direction + accessoryRegistry.length) % accessoryRegistry.length;
             currentPal.accessory = accessoryRegistry[idx];
             renderPreview();
+        };
+
+        const surpriseMe = () => {
+            // Random Category
+            const categories = Object.keys(subTypeRegistry);
+            const randomCategory = categories[Math.floor(Math.random() * categories.length)];
+            currentPal.category = randomCategory;
+
+            // Random SubType
+            const subTypes = subTypeRegistry[randomCategory];
+            const randomSubType = subTypes[Math.floor(Math.random() * subTypes.length)];
+            currentPal.subType = randomSubType;
+
+            // Random Color
+            const randomColorObj = colorRegistry[Math.floor(Math.random() * colorRegistry.length)];
+            currentPal.colorName = randomColorObj.name;
+            currentPal.color = randomColorObj.hex;
+
+            // Random Accessory (including None)
+            // Giving "None" a slightly higher weight for cleaner looks sometimes? 
+            // Or just pure random. Let's go pure random for maximum chaos/surprise.
+            const randomAccessory = accessoryRegistry[Math.floor(Math.random() * accessoryRegistry.length)];
+            currentPal.accessory = randomAccessory;
+
+            // Update UI to reflect changes
+
+            // 1. Update Tabs
+            overlay.querySelectorAll('.figpal-tab').forEach(t => {
+                t.classList.toggle('active', t.dataset.tab === currentPal.category);
+            });
+
+            // 2. Update Color Dots
+            overlay.querySelectorAll('.color-dot').forEach(d => {
+                d.classList.toggle('selected', d.dataset.colorName === currentPal.colorName);
+            });
+
+            renderPreview();
+
+            // Animate button for feedback
+            const btn = overlay.querySelector('.figpal-surprise-btn');
+            btn.classList.add('pulse');
+            setTimeout(() => btn.classList.remove('pulse'), 300);
         };
 
         const safeIcon = (name, color) => (FP.sprite && FP.sprite.getIcon) ? FP.sprite.getIcon(name, color) : '';
@@ -179,7 +238,7 @@
                             <div class="figpal-divider"></div>
                             
                             <div class="figpal-surprise-action">
-                                <button class="figpal-surprise-btn">
+                                <button class="figpal-surprise-btn" id="figpal-surprise-trigger">
                                     ${getIconFileHTML('Surprise Me')}
                                 </button>
                                 <span class="figpal-label">Surprise me</span>
@@ -249,6 +308,20 @@
                 renderPreview();
             });
         });
+
+        // Name Input Logic
+        const namerInput = overlay.querySelector('.figpal-namer-input');
+        if (namerInput) {
+            namerInput.addEventListener('input', (e) => {
+                currentPal.name = e.target.value;
+            });
+        }
+
+        // Surprise Me Button Logic
+        const surpriseBtn = overlay.querySelector('#figpal-surprise-trigger');
+        if (surpriseBtn) {
+            surpriseBtn.addEventListener('click', surpriseMe);
+        }
 
         // Save Button logic
         overlay.querySelector('.figpal-main-save-btn').addEventListener('click', () => {

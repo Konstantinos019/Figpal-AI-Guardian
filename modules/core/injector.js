@@ -302,7 +302,13 @@
         FP.state.elements = { container, follower, chatBubble, home };
 
         // Render Initial state (Active Pal)
-        reRenderFollower();
+        chrome.storage.local.get(['activePal'], (result) => {
+            if (result.activePal) {
+                FP.state.activePal = result.activePal;
+                console.log('FigPal: Loaded activePal from storage', FP.state.activePal);
+            }
+            reRenderFollower();
+        });
 
         // ─── Wire up UI ──────────────────────────────────────────────────
         wireCloseButton(chatBubble, container);

@@ -58,12 +58,32 @@
 
         // 2. Accessory Layer
         if (accessory && accessory !== "None") {
-            // Determine position based on pal family
+            // Determine position based on pal family & subtype
+            // Default position (Top for almost everyone: Objects, Food, Figma, most Animals)
             let position = "Top";
-            if (category === "Object") position = "Top";
-            else if (category === "Animal") position = "Top";
-            else if (category === "Food") position = "Bottom";
-            else if (category === "Figma") position = "Top";
+
+            // Specific overrides for certain Animals
+            const positionOverrides = {
+                // Left aligned
+                "Snake": "Left",
+                "Duck": "Left",
+                "Caterpillar": "Left",
+                "Bird": "Left",
+                "Capybara": "Left",
+
+                // Bottom aligned
+                "Cat": "Bottom",
+                "Dog": "Bottom",
+                "Rodent": "Bottom",
+
+                // Right aligned
+                "Snail": "Right"
+            };
+
+            // If an override exists for this subType, use it. Otherwise default to Top.
+            if (positionOverrides[subType]) {
+                position = positionOverrides[subType];
+            }
 
             const accessoryUrl = getAsset(`assets/Accessories/${position}/${accessory}.svg`);
 

@@ -36,8 +36,14 @@
             }
         },
 
-        '/connect': function () {
-            FP.setup.showSetupPrompt();
+        '/connect': async function () {
+            // Trigger Persistent VFS Picker
+            const result = await FP.vfs.pickFolder();
+            if (result.success) {
+                FP.chat.addMessage(`🔗 **Connected!**\n\nI've loaded your codebase: \`${result.name}\`.\nI can now read your files directly!`, 'bot');
+            } else {
+                FP.chat.addMessage(`❌ **Connection Failed**\n${result.error || 'Pick cancelled.'}`, 'bot');
+            }
         },
 
         '/plugin': function () {

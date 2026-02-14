@@ -35,6 +35,7 @@
         "modules/character/physics.js",
         "modules/character/interactions.js",
         "modules/figma/automation.js",
+        "modules/core/vfs.js",
         "modules/core/injector.js",
         "content.js"
       ],

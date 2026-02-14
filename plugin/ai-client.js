@@ -33,6 +33,15 @@ const PROVIDERS = {
 export async function askAI({ provider, apiKey, model, history, systemPrompt, userMessage, tools }) {
     if (!PROVIDERS[provider]) throw new Error(`Unknown provider: ${provider}`);
 
+    // Inject Project Context if available
+    // Note: The main extension (modules/ai/client.js) acts as the brain and injects context before sending the request here.
+    // However, if we need persistent path fallbacks from localStorage (which is also not available in sandbox directly without messaging),
+    // we rely on the message payload.
+    // The previous localStorage logic was also flawed in sandbox if not using figma.clientStorage.
+    // For now, we trust the `systemPrompt` passed in the arguments contains everything.
+
+    let enhancedSystemPrompt = systemPrompt;
+
     const cfg = PROVIDERS[provider];
     const url = cfg.endpoint(model);
 
@@ -42,7 +51,7 @@ export async function askAI({ provider, apiKey, model, history, systemPrompt, us
         const response = await fetch(url, {
             method: 'POST',
             headers: cfg.headers(apiKey),
-            body: JSON.stringify(cfg.body(systemPrompt, history, userMessage, tools))
+            body: JSON.stringify(cfg.body(enhancedSystemPrompt, history, userMessage, tools))
         });
 
         if (!response.ok) {
