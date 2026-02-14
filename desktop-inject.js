@@ -275,11 +275,29 @@
     toolbarBtn.addEventListener('click', (e) => {
       e.preventDefault();
       e.stopPropagation();
-      const container = document.getElementById('figpal-container');
-      if (container) {
-        container.classList.toggle('chat-visible');
-        updateToolbarBtnState();
+
+      let panel = document.getElementById('figpal-panel-hub');
+      if (!panel) {
+        // Simple injection for desktop-inject standalone
+        panel = document.createElement('div');
+        panel.id = 'figpal-panel-hub';
+        panel.className = 'figpal-panel-container';
+        panel.innerHTML = `
+          <div class="figpal-panel-header">
+            <h3>Figpals Hub (Desktop)</h3>
+            <button class="figpal-panel-close">×</button>
+          </div>
+          <div class="figpal-panel-body">Empty Hub</div>
+        `;
+        document.body.appendChild(panel);
+        panel.querySelector('.figpal-panel-close').addEventListener('click', () => {
+          panel.classList.remove('visible');
+          updateToolbarBtnState();
+        });
       }
+
+      panel.classList.toggle('visible');
+      updateToolbarBtnState();
     });
 
     updateToolbarBtnState();
@@ -287,10 +305,10 @@
 
   function updateToolbarBtnState() {
     const toolbarBtn = document.querySelector('.figpal-toolbar-btn');
-    const container = document.getElementById('figpal-container');
-    if (!toolbarBtn || !container) return;
+    const panel = document.getElementById('figpal-panel-hub');
+    if (!toolbarBtn) return;
 
-    if (container.classList.contains('chat-visible')) {
+    if (panel && panel.classList.contains('visible')) {
       toolbarBtn.classList.add('selected');
     } else {
       toolbarBtn.classList.remove('selected');
@@ -431,9 +449,12 @@
   }
 
   // Persistent poll for Figma editor and toolbar
+  // Disabling standalone injector in favour of modular injector.js
+  /*
   setInterval(() => {
     if (document.querySelector('[data-testid="design-toolbelt-wrapper"]')) {
       inject();
     }
   }, 1000);
+  */
 })();

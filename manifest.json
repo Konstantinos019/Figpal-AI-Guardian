@@ -21,6 +21,8 @@
       ],
       "js": [
         "modules/core/event-bus.js",
+        "modules/character/sprite.js",
+        "modules/ui/panel.js",
         "modules/chat/renderer.js",
         "modules/ai/tracker.js",
         "modules/ai/client.js",
@@ -44,9 +46,11 @@
   "web_accessible_resources": [
     {
       "resources": [
-        "assets/selection.svg",
-        "assets/thinking.svg",
-        "assets/home.svg"
+        "assets/*.svg",
+        "assets/pals/**/*.svg",
+        "assets/stage/*.svg",
+        "assets/Icons/*.svg",
+        "assets/Accessories/**/*.svg"
       ],
       "matches": [
         "<all_urls>"

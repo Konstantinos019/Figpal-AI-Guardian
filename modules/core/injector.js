@@ -128,19 +128,10 @@
                 e.preventDefault();
                 e.stopPropagation();
 
-                const isEnabled = !document.body.classList.contains('figpal-disabled');
-                if (isEnabled) {
-                    document.body.classList.add('figpal-disabled');
-                    localStorage.setItem('figpal-enabled', 'false');
-                } else {
-                    document.body.classList.remove('figpal-disabled');
-                    localStorage.setItem('figpal-enabled', 'true');
-
-                    // If not docked, we want to ensure chat is hidden by default when enabling
-                    const isDocked = document.body.classList.contains('figpal-is-docked');
-                    if (!isDocked) {
-                        FP.state.elements.container.classList.remove('chat-visible');
-                    }
+                // Initialize panel if not already present
+                if (FP.panel && FP.panel.init) {
+                    FP.panel.init();
+                    FP.panel.toggle();
                 }
 
                 updateToolbarBtnState();
