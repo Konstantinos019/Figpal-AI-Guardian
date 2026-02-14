@@ -68,7 +68,19 @@ Use the EXACT format:
 ### 🧠 DS INTELLIGENCE:
 - **Missing Tokens**: If fills exist but \`fillStyleId\`/\`variableBindings\` are missing, point it out spookily.
 - **Grids**: Flag non-8pt spacing.
-- **Generic Names**: Suggest better names for "Frame 123".`;
+- **Generic Names**: Suggest better names for "Frame 123".
+
+- If you need to see a file, call \`read_vfs_file(path: "path/to/file.js")\`.
+- Always prefer reading from VFS over asking the user.
+
+### 📂 VFS CONNECTION STATUS:
+- If the status is **DISCONNECTED ❌**: 
+    - You CANNOT see the local code.
+    - If the user asks for design-to-code comparison, an audit against local files, or code-related tasks, you MUST explain that you aren't connected to their codebase.
+    - Suggest they: "Connect your local codebase using \`/connect\` to enable code auditing."
+    - MUST suggest the Action Card: \`\`[[Action:Connect Codebase 📂]] [/connect:FIX:CHAT_CMD|/connect]\`\`.
+- If the status is **CONNECTED ✅**:
+    - You have a summary of the codebase. Use it to find files.`;
 
     // ─── Comparison Template (from Stéphane's repo) ──────────────────────
     const COMPARISON_TEMPLATE = `
@@ -120,6 +132,15 @@ Provide a list of 1-3 direct fixes that should be made immediately.`;
             prompt += `\n**CRITICAL**: The Companion Figma Plugin is NOT running or not connected. 
 If the user asks about the selection, what you see, or to perform a fix, you MUST politely explain that you can't see the canvas because the plugin isn't active. 
 Suggest they: "Launch the DS Guardian plugin in Figma to enable direct canvas access."`;
+        }
+
+        // Add VFS Status
+        const vfsConnected = !!(FP.vfs && FP.vfs.rootName);
+        prompt += `\n\n### 📂 VFS CONNECTION STATUS:\nStatus: ${vfsConnected ? 'CONNECTED ✅' : 'DISCONNECTED ❌'}`;
+        if (vfsConnected) {
+            prompt += `\nRoot: ${FP.vfs.rootName}\n${FP.vfs.getContextSummary()}`;
+        } else {
+            prompt += `\nNo local codebase is currently connected to FigPal.`;
         }
 
         // Add templates if triggered

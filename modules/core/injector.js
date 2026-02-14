@@ -70,7 +70,10 @@
             const rect = switcher.getBoundingClientRect();
             if (rect.width > 0) {
                 const centerX = rect.left + (rect.width / 2);
+                const bottomOffset = window.innerHeight - rect.top;
+
                 document.documentElement.style.setProperty('--figpal-resting-left', `${centerX}px`);
+                document.documentElement.style.setProperty('--figpal-resting-bottom', `${bottomOffset}px`);
             }
         }
     }
@@ -224,17 +227,11 @@
         isInjected = true;
 
         // Sprites
-        const defaultSprite = chrome.runtime.getURL('assets/selection.svg');
-        const thinkingSprite = chrome.runtime.getURL('assets/thinking.svg');
-        const homeSprite = chrome.runtime.getURL('assets/home.svg');
-
         FP.state.sprites = {
-            default: defaultSprite,
-            thinking: thinkingSprite,
-            home: homeSprite,
             homeEmpty: chrome.runtime.getURL('assets/home_empty.svg'),
-            signLeft: chrome.runtime.getURL('assets/sign_left.svg'),
-            signRight: chrome.runtime.getURL('assets/sign_right.svg')
+            signLeft: chrome.runtime.getURL('assets/NamePost/sign_left.svg'),
+            signRight: chrome.runtime.getURL('assets/NamePost/sign_right.svg'),
+            pole: chrome.runtime.getURL('assets/NamePost/pole.svg')
         };
 
         // Container
@@ -262,6 +259,11 @@
 
         mid.appendChild(homeText);
 
+        const pole = document.createElement('div');
+        pole.className = 'figpal-sign-pole';
+        pole.style.backgroundImage = `url(${FP.state.sprites.pole})`;
+
+        home.appendChild(pole);
         home.appendChild(left);
         home.appendChild(mid);
         home.appendChild(right);
@@ -379,7 +381,7 @@
         wireDockButton(chatBubble, container);
         wireModelSelector(chatBubble);
         wireSendButton(chatBubble);
-        wireStopButton(chatBubble, follower, defaultSprite);
+        wireStopButton(chatBubble, follower);
         wireInputListeners(chatBubble);
         wireAuthModal(container); // New functionality
 
@@ -562,7 +564,7 @@
         });
     }
 
-    function wireStopButton(chatBubble, follower, defaultSprite) {
+    function wireStopButton(chatBubble, follower) {
         const stopBtn = chatBubble.querySelector('#figpal-stop-btn');
 
         stopBtn.addEventListener('click', (e) => {
@@ -578,12 +580,9 @@
                 thinkingMsg.classList.add('figpal-error');
             }
 
-            follower.src = defaultSprite;
+            FP.state.isThinking = false;
+            reRenderFollower();
             follower.classList.remove('thinking');
-            const avatars = chatBubble.querySelectorAll('.figpal-avatar');
-            if (avatars.length > 0) {
-                avatars[avatars.length - 1].src = defaultSprite;
-            }
         });
     }
 

@@ -1,0 +1,34 @@
+/* modules/ui/components/Button.css */
+/* Standalone styles for the Save Button component */
+
+.figpal-main-save-btn {
+    width: 100%;
+    height: 32px;
+    background: #0D99FF;
+    color: white;
+    border: none;
+    border-radius: 10000px;
+    font-size: 10px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: background 0.2s, transform 0.1s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 2px 4px rgba(13, 153, 255, 0.2);
+}
+
+.figpal-main-save-btn:hover {
+    background: #0088EE;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 8px rgba(13, 153, 255, 0.3);
+}
+
+.figpal-main-save-btn:active {
+    transform: translateY(0);
+}
+
+.figpal-main-save-btn.saved {
+    background: #27AE60;
+    box-shadow: 0 2px 4px rgba(39, 174, 96, 0.2);
+}

@@ -30,6 +30,7 @@
         "modules/figma/data.js",
         "modules/figma/plugin-bridge.js",
         "modules/onboarding/setup.js",
+        "modules/ui/components/Button.js",
         "modules/chat/commands.js",
         "modules/chat/flow.js",
         "modules/character/physics.js",
@@ -40,7 +41,8 @@
         "content.js"
       ],
       "css": [
-        "styles.css"
+        "styles.css",
+        "modules/ui/components/Button.css"
       ]
     }
   ],

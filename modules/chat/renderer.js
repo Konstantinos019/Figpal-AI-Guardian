@@ -194,10 +194,14 @@
         row.classList.add('figpal-message-row', sender);
 
         if (sender === 'bot') {
-            const avatar = document.createElement('img');
-            avatar.className = 'figpal-avatar';
-            const FALLBACK = "https://raw.githubusercontent.com/josh-one/figpal/main/assets/ghost.png";
-            avatar.src = FP.state.sprites?.default || FALLBACK;
+            const avatar = document.createElement('div');
+            avatar.className = 'figpal-avatar bot-avatar';
+
+            // Use layered rendering
+            if (FP.sprite?.assemble) {
+                avatar.innerHTML = FP.sprite.assemble(FP.state.activePal || {});
+            }
+
             row.appendChild(avatar);
         }
 

@@ -18,9 +18,15 @@
 
 /* Global Disabled State - Hides everything regarding the pal */
 body.figpal-disabled #figpal-container,
-body.figpal-disabled #figpal-home,
-body.figpal-ui-hidden #figpal-container,
-body.figpal-ui-hidden #figpal-home {
+body.figpal-disabled #figpal-home {
+  display: none !important;
+  opacity: 0 !important;
+  pointer-events: none !important;
+}
+
+/* UI Hidden State (Cmd+\) - Only hide signpost and resting character */
+body.figpal-ui-hidden #figpal-home,
+body.figpal-ui-hidden #figpal-container.resting #figpal-follower {
   display: none !important;
   opacity: 0 !important;
   pointer-events: none !important;
@@ -33,7 +39,8 @@ body.figpal-ui-hidden #figpal-home {
   position: fixed;
   left: var(--figpal-resting-left, calc(50% + 180px));
   /* Base position, will be nudged by JS */
-  bottom: 60px;
+  bottom: calc(var(--figpal-resting-bottom, 48px) + 38px);
+  /* Roughly 86px from bottom if toolbar height is 48px (+26px nudge) */
   transform: translateX(-50%);
   /* Allow auto width */
   width: auto;
@@ -61,12 +68,28 @@ body.figpal-ui-hidden #figpal-home {
   flex-shrink: 0;
 }
 
+.figpal-sign-pole {
+  position: absolute;
+  top: -6px;
+  /* Sticks out 6px above sign top per Figma */
+  left: 50%;
+  transform: translateX(-50%);
+  width: 14px;
+  /* Rounded from 13.71px */
+  height: 61.35px;
+  /* From Figma */
+  background-size: contain;
+  background-repeat: no-repeat;
+  z-index: -1;
+  /* Behind the sign label */
+}
+
 .figpal-sign-mid {
   height: 100%;
   background-color: #DCAB6E;
   /* Wood color */
-  border-top: 1.684px solid black;
-  border-bottom: 1.684px solid black;
+  box-shadow: inset 0 1.684px 0 black, inset 0 -1.684px 0 black;
+  /* Inner borders matching SVG stroke */
   display: flex;
   align-items: center;
   justify-content: center;
@@ -169,8 +192,8 @@ body.figpal-ui-hidden #figpal-home {
   left: var(--figpal-resting-left, calc(50% + 180px)) !important;
   /* Center + offset (nudged left another 20px) */
   top: auto !important;
-  bottom: 80px !important;
-  /* Raised to 80px */
+  bottom: calc(var(--figpal-resting-bottom, 48px) + 32px) !important;
+  /* Sits on top of the sign (Matches old 80px center position) */
   transform: translateX(-50%) !important;
   /* Center alignment relative to the point */
   z-index: 100000;
@@ -379,9 +402,15 @@ body.figpal-dev-mode .figpal-chat-input-area input {
   flex-shrink: 0;
   border-radius: 0;
   /* Removed masking per request */
-  object-fit: contain;
   margin-top: 2px;
   /* Align with text baseline */
+  position: relative;
+  /* Support for layered children */
+}
+
+.figpal-avatar.bot-avatar {
+  transform: scaleX(-1);
+  /* Differentiate bot from resting pal */
 }
 
 /* Message Bubble Base */
@@ -1710,21 +1739,4 @@ body.resizing #react-page,
   font-size: 9px;
   color: #007BE5;
   text-decoration: underline;
-}
-
-.figpal-main-save-btn {
-  width: 100%;
-  height: 32px;
-  background: #0D99FF;
-  color: white;
-  border: none;
-  border-radius: 10000px;
-  font-size: 10px;
-  font-weight: 500;
-  cursor: pointer;
-  transition: background 0.2s;
-}
-
-.figpal-main-save-btn:hover {
-  background: #0088EE;
 }

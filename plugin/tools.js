@@ -46,5 +46,16 @@ export const TOOLS = [
             type: "object",
             properties: {}
         }
+    },
+    {
+        name: "read_vfs_file",
+        description: "Read the content of a file from the user's local codebase via VFS.",
+        parameters: {
+            type: "object",
+            properties: {
+                path: { type: "string", description: "The relative path to the file (e.g. 'src/App.js')" }
+            },
+            required: ["path"]
+        }
     }
 ];

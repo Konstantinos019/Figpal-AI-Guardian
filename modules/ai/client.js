@@ -17,11 +17,28 @@
                 'Content-Type': 'application/json',
                 'x-goog-api-key': key,
             }),
-            buildBody: (prompt) => ({
-                contents: [{ parts: [{ text: prompt }] }],
-            }),
-            parseResponse: (data) =>
-                data?.candidates?.[0]?.content?.parts?.[0]?.text || null,
+            buildBody: (prompt, model, tools) => {
+                const body = {
+                    contents: [{ parts: [{ text: prompt }] }],
+                };
+                if (tools && tools.length > 0) {
+                    body.tools = [{
+                        functionDeclarations: tools.map(t => ({
+                            name: t.name,
+                            description: t.description,
+                            parameters: t.parameters
+                        }))
+                    }];
+                }
+                return body;
+            },
+            parseResponse: (data) => {
+                const part = data?.candidates?.[0]?.content?.parts?.[0];
+                if (part?.functionCall) {
+                    return { type: 'tool', call: { name: part.functionCall.name, args: part.functionCall.args } };
+                }
+                return part?.text || null;
+            },
             listModelsUrl: (key) =>
                 `https://generativelanguage.googleapis.com/v1beta/models?key=${key}`,
             parseModelList: (data) =>
@@ -86,26 +103,22 @@
         },
     };
 
-    // ─── Send to AI ──────────────────────────────────────────────────────
-    async function sendToAI(prompt) {
-        // Inject VFS Context (if applicable)
-        if (FP.vfs && FP.vfs.rootName) {
-            const summary = FP.vfs.getContextSummary();
-            if (summary) {
-                const contextMsg = `\n\nCONTEXT: The user has loaded a local codebase (${FP.vfs.rootName}).\n${summary}\n\nTo read a file, ask the user to read it, or use the \`read_file\` tool if available.`;
-
-                if (typeof prompt === 'string') {
-                    prompt += contextMsg;
-                } else if (typeof prompt === 'object' && prompt.messages) {
-                    // For object prompts (Plugin Brain or Structured), append to last user message
-                    const lastMsg = prompt.messages[prompt.messages.length - 1];
-                    if (lastMsg && lastMsg.role === 'user') {
-                        lastMsg.content += contextMsg;
-                    }
-                }
+    const AVAILABLE_TOOLS = [
+        {
+            name: "read_vfs_file",
+            description: "Read the content of a file from the user's local codebase via VFS.",
+            parameters: {
+                type: "object",
+                properties: {
+                    path: { type: "string", description: "The relative path to the file (e.g. 'src/App.js')" }
+                },
+                required: ["path"]
             }
         }
+    ];
 
+    // ─── Send to AI ──────────────────────────────────────────────────────
+    async function sendToAI(prompt, tools = AVAILABLE_TOOLS) {
         const provider = FP.state.provider || 'gemini';
         const apiKey = FP.state.apiKeys[provider];
         const selectedModel = FP.state.selectedModel;
@@ -113,8 +126,6 @@
 
         if (!cfg) return 'Unknown AI provider: ' + provider;
         if (!apiKey) return `Please set your API key for **${cfg.name}** via \`/connect\`. ⚙️`;
-
-        if (!cfg) return 'Unknown AI provider: ' + provider;
 
         // ─── PLUGIN BRAIN PATH ───────────────────────────────────────────────
         if (typeof prompt === 'object' && prompt.isConnected) {
@@ -136,20 +147,6 @@
 
                 const responseText = result.text || "";
 
-                // Detection for 429 from Plugin Brain (propagated error text)
-                if (responseText.includes('Error 429') || responseText.includes('Quota Exceeded')) {
-                    const tracker = FP.ai.tracker;
-                    if (tracker) {
-                        return `### 🛑 Quota Exceeded\n\nYou've hit the provider's rate limits.\n\n${tracker.formatUsageMarkdown('Current Usage Estimates')}\n\n*Please wait a minute for stats to reset.*`;
-                    }
-                }
-
-                // Track successful usage
-                if (FP.ai.tracker && !responseText.startsWith('Error:')) {
-                    const estimatedTokens = (JSON.stringify(prompt).length + responseText.length) / 4;
-                    FP.ai.tracker.trackRequest(estimatedTokens);
-                }
-
                 return responseText || "No text returned from Brain.";
             } catch (e) {
                 console.error('FigPal AI: Plugin Brain failed', e);
@@ -158,81 +155,70 @@
         }
 
         // ─── LEGACY FETCH PATH ───────────────────────────────────────────────
-        if (!apiKey) return `Please set your API key for **${cfg.name}** via \`/connect\`. ⚙️`;
-
-        // Abort any in-flight request
         if (FP.state.currentController) FP.state.currentController.abort();
         FP.state.currentController = new AbortController();
         const signal = FP.state.currentController.signal;
 
         const model = selectedModel || cfg.models[0];
 
-        // Try multiple endpoints for Gemini (v1beta then v1)
-        const endpoints = provider === 'gemini'
-            ? [
-                cfg.endpoint(model),
-                `https://generativelanguage.googleapis.com/v1/models/${model}:generateContent`,
-            ]
-            : [cfg.endpoint(model)];
+        // Loop for tool fulfilling
+        let currentPrompt = prompt;
+        let attempts = 0;
+        const maxAttempts = 5;
 
-        for (const endpoint of endpoints) {
-            console.log(`FigPal AI: Trying ${provider}/${model} via ${endpoint}...`);
+        while (attempts < maxAttempts) {
+            attempts++;
+
+            const endpoint = cfg.endpoint(model);
+            const body = cfg.buildBody(currentPrompt, model, tools);
 
             try {
                 const response = await fetch(endpoint, {
                     method: 'POST',
                     headers: cfg.headers(apiKey),
-                    body: JSON.stringify(cfg.buildBody(prompt, model)),
+                    body: JSON.stringify(body),
                     signal: signal,
                 });
 
-                if (response.ok) {
-                    const data = await response.json();
+                if (!response.ok) {
+                    const errorData = await response.json().catch(() => ({}));
+                    return `AI Error: ${response.status} - ${errorData.error?.message || 'Failed'}`;
+                }
 
-                    // Track successful usage (estimate tokens based on chars / 4)
+                const data = await response.json();
+                const result = cfg.parseResponse(data);
+
+                if (typeof result === 'string') {
+                    // Track successful usage
                     if (FP.ai.tracker) {
-                        const estimatedTokens = (JSON.stringify(prompt).length + JSON.stringify(data).length) / 4;
+                        const estimatedTokens = (JSON.stringify(currentPrompt).length + result.length) / 4;
                         FP.ai.tracker.trackRequest(estimatedTokens);
                     }
+                    return result;
+                } else if (result && result.type === 'tool') {
+                    const { name, args } = result.call;
+                    console.log(`FigPal AI: Tool Call -> ${name}`, args);
 
-                    const text = cfg.parseResponse(data);
-                    if (text) return text;
-                } else if (response.status === 429) {
-                    const tracker = FP.ai.tracker;
-                    if (tracker) {
-                        // Count this attempt (it consumed a request slot)
-                        tracker.trackRequest(0);
-
-                        const stats = tracker.getUsage();
-                        const isLow = (stats.rpm < 5) && (stats.rpd < 100); // Check if local counts match typical server limits
-
-                        let mismatchMsg = "";
-                        if (isLow) {
-                            mismatchMsg = `\n\n> ⚠️ **Note:** Your local counters are low, but Google's server blocked the request. This usually happens if:\n> - You used the API on another device/tab\n> - You recently reloaded the extension (resetting local stats)`;
+                    if (name === 'read_vfs_file') {
+                        const content = await FP.vfs.readFile(args.path);
+                        if (!content) {
+                            currentPrompt += `\n\nTOOL_RESPONSE: File not found: ${args.path}`;
+                        } else {
+                            currentPrompt += `\n\nTOOL_RESPONSE: Content of ${args.path}:\n\`\`\`\n${content}\n\`\`\``;
                         }
-
-                        return `### 🛑 Quota Exceeded\n\nYou've hit the provider's rate limits.\n\n${tracker.formatUsageMarkdown('Current Usage Estimates')}${mismatchMsg}\n\n*Please wait a minute for stats to reset.*`;
+                        continue; // Loop
                     } else {
-                        return `### 🛑 Quota Exceeded\n\nYou've hit the AI provider's rate limits. Please wait a minute and try again.`;
+                        return `I need to use ${name}, but I can only read files right now.`;
                     }
-                } else if (response.status === 404) {
-                    console.warn(`FigPal AI: ${model} not found, trying next endpoint...`);
-                    continue;
-                } else {
-                    const errorBody = await response.json().catch(() => ({}));
-                    console.error(`FigPal AI: Error (${model})`, response.status, errorBody);
-                    return `AI Error: ${response.status} - ${errorBody.error?.message || 'Check your key via /reset'}`;
                 }
+                return "No response from AI.";
             } catch (e) {
-                if (e.name === 'AbortError') {
-                    console.log('FigPal AI: Request aborted.');
-                    throw e;
-                }
-                console.error(`FigPal AI: Fatal error with ${model}`, e);
+                if (e.name === 'AbortError') throw e;
+                return `Fatal Error: ${e.message}`;
             }
         }
 
-        return `Sorry, ${cfg.name} returned errors for all endpoints. Check your API key or try /check.`;
+        return "Too many tool loops. Reached max limit.";
     }
 
     // ─── Abort ───────────────────────────────────────────────────────────

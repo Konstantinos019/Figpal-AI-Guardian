@@ -247,7 +247,7 @@
                             <a href="#" class="figpal-bts-link">Behind the scenes</a>
                         </div>
                         
-                        <button class="figpal-main-save-btn">Save</button>
+                        ${FP.components.Button.render()}
                     </div>
                 </div>
             </div>
@@ -326,25 +326,11 @@
             surpriseBtn.addEventListener('click', surpriseMe);
         }
 
-        // Save Button logic
-        overlay.querySelector('.figpal-main-save-btn').addEventListener('click', () => {
-            console.log('FigPal: Saving active pal...', currentPal);
-            FP.state.activePal = { ...currentPal };
-            chrome.storage.local.set({ activePal: currentPal }, () => {
-                if (FP.injector?.reRenderFollower) {
-                    FP.injector.reRenderFollower();
-                }
-                const btn = overlay.querySelector('.figpal-main-save-btn');
-                const oldText = btn.textContent;
-                btn.textContent = 'Saved!';
-                btn.classList.add('saved');
-                setTimeout(() => {
-                    btn.textContent = oldText;
-                    btn.classList.remove('saved');
-                    // Close panel after saving
-                    toggle(false);
-                }, 1000); // Shortened duration since we are closing
-            });
+        // Save Button logic - Now using component wiring
+        const saveBtn = overlay.querySelector('.figpal-main-save-btn');
+        FP.components.Button.wire(saveBtn, currentPal, () => {
+            // Close panel after saving
+            toggle(false);
         });
 
         // Prevent clicks inside the panel from closing the overlay
