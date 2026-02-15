@@ -55,9 +55,16 @@
 
         // Custom config registry (per-subtype memory for accessories/positions)
         const customConfigs = {};
+        const customSprites = {}; // Map of subType -> dataURL
 
         // Load saved state
-        chrome.storage.local.get(['activePal'], (res) => {
+        chrome.storage.local.get(['activePal', 'customConfigs', 'customSprites', 'customSubTypes'], (res) => {
+            if (res.customConfigs) Object.assign(customConfigs, res.customConfigs);
+            if (res.customSprites) Object.assign(customSprites, res.customSprites);
+            if (res.customSubTypes) {
+                subTypeRegistry["Custom"] = [...res.customSubTypes, "Upload"];
+            }
+
             if (res.activePal) {
                 Object.assign(currentPal, res.activePal);
                 FP.state.activePal = { ...currentPal };
@@ -160,7 +167,44 @@
                 accessoryPosition: nextPos
             };
 
+            chrome.storage.local.set({ customConfigs });
             renderPreview();
+        };
+
+        const handleUpload = (e) => {
+            const file = e.target.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = (event) => {
+                const dataUrl = event.target.result;
+                const fileName = file.name.split('.')[0] || "MyBot";
+                const baseName = fileName.replace(/\s+/g, '-');
+
+                // Ensure unique name
+                let finalName = baseName;
+                let counter = 1;
+                const existing = subTypeRegistry["Custom"];
+                while (existing.includes(finalName)) {
+                    finalName = `${baseName}-${counter++}`;
+                }
+
+                // Update Registries
+                customSprites[finalName] = dataUrl;
+                subTypeRegistry["Custom"].unshift(finalName); // Add to start
+
+                // Persistence
+                chrome.storage.local.set({
+                    customSprites: customSprites,
+                    customSubTypes: subTypeRegistry["Custom"].filter(s => s !== "Upload")
+                });
+
+                // Select the new bot
+                currentPal.category = "Custom";
+                currentPal.subType = finalName;
+                renderPreview();
+            };
+            reader.readAsDataURL(file);
         };
 
         const safeIcon = (name, color) => (FP.sprite && FP.sprite.getIcon) ? FP.sprite.getIcon(name, color) : '';
@@ -184,7 +228,8 @@
                     color: currentPal.color,
                     accessory: config.accessory || currentPal.accessory,
                     accessoryPosition: config.accessoryPosition || undefined,
-                    parts: currentPal.parts
+                    parts: currentPal.parts,
+                    customBodyUrl: customSprites[currentPal.subType] || null
                 });
             }
             // Update stage platform
@@ -207,13 +252,21 @@
                     // Show special Upload placeholder
                     if (previewContainer) {
                         previewContainer.innerHTML = `
-                            <div class="figpal-upload-placeholder" style="width:100%; height:100%; display:flex; flex-direction:column; align-items:center; justify-content:center; cursor:pointer;" onclick="console.log('Open Upload Picker')">
+                            <div class="figpal-upload-placeholder" style="width:100%; height:100%; display:flex; flex-direction:column; align-items:center; justify-content:center; cursor:pointer;" id="trigger-upload">
                                 <div style="width:40px; height:40px; border-radius:50%; background:rgba(0,0,0,0.05); display:flex; align-items:center; justify-content:center; margin-bottom:12px;">
                                     <span style="font-size:20px; color:rgba(0,0,0,0.4);">+</span>
                                 </div>
                                 <span style="color:rgba(0,0,0,0.4); font-size:11px; font-weight:600; text-transform:uppercase; letter-spacing:0.5px;">Add New</span>
+                                <input type="file" id="figpal-file-input" style="display:none;" accept="image/*">
                             </div>
                         `;
+                        // Re-wire the trigger since we just replaced innerHTML
+                        const trigger = previewContainer.querySelector('#trigger-upload');
+                        const input = previewContainer.querySelector('#figpal-file-input');
+                        if (trigger && input) {
+                            trigger.addEventListener('click', () => input.click());
+                            input.addEventListener('change', handleUpload);
+                        }
                     }
                     if (dotsContainer) dotsContainer.style.display = 'none';
                     if (customActions) customActions.style.display = 'none'; // No actions for "Upload" placeholder
@@ -442,12 +495,23 @@
                     const types = subTypeRegistry["Custom"];
                     const idx = types.indexOf(currentPal.subType);
                     if (idx > -1) {
+                        const subtypeToRemove = currentPal.subType;
                         types.splice(idx, 1);
-                        if (types.length === 0) {
+                        delete customSprites[subtypeToRemove];
+                        delete customConfigs[subtypeToRemove];
+
+                        // Persistence
+                        chrome.storage.local.set({
+                            customSprites: customSprites,
+                            customSubTypes: types.filter(s => s !== "Upload"),
+                            customConfigs: customConfigs
+                        });
+
+                        if (types.length === 0 || (types.length === 1 && types[0] === "Upload")) {
                             currentPal.category = "Object";
                             currentPal.subType = "Rock";
                         } else {
-                            currentPal.subType = types[0];
+                            currentPal.subType = types[0] === "Upload" ? types[1] : types[0];
                         }
                         renderPreview();
                         overlay.querySelectorAll('.figpal-tab').forEach(t => {

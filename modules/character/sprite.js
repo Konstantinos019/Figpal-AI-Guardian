@@ -51,7 +51,9 @@
 
         // 1. Character Body (Includes eyes, mouth, etc.)
         let bodyUrl;
-        if (category === "Custom") {
+        if (options.customBodyUrl) {
+            bodyUrl = options.customBodyUrl;
+        } else if (category === "Custom") {
             bodyUrl = getAsset(`${palsPath}/${category}/${subType}.svg`);
         } else {
             const variantFile = `Color=${colorName}.svg`;
