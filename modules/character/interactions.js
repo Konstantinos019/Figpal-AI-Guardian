@@ -33,16 +33,21 @@
             e.stopPropagation();
 
             if (container.classList.contains('chat-visible')) {
-                // If chat open: close chat and STAY static
+                // Case 1: Chat Open -> Close chat, stay static
                 container.classList.remove('chat-visible');
                 FP.state.isFollowing = false;
                 FP.state.isReturningHome = false;
+            } else if (container.classList.contains('resting')) {
+                // Case 2: Resting (Docked) -> Start Following
+                console.log('FigPal: Waking up from rest -> Following');
+                container.classList.remove('resting');
+                FP.state.isFollowing = true;
+                FP.state.isReturningHome = false;
             } else {
-                // If chat closed: OPEN CHAT (Stop following)
+                // Case 3: Static (Floating) -> Open Chat
                 container.classList.add('chat-visible');
                 FP.state.isFollowing = false;
                 FP.state.isReturningHome = false;
-                container.classList.remove('resting');
 
                 // Focus input
                 const input = container.querySelector('input');
