@@ -20,25 +20,34 @@
     function start() {
         setInterval(() => {
             // 1. URL check
-            const isFigmaFile = /figma\.com\/(design|file|proto)\//.test(window.location.href);
+            const isFigmaFile = /figma\.com\/(design|file|proto|board)\//.test(window.location.href);
 
-            FP.state.fileKey = null;
-            FP.state.selectedNodeId = null;
+            if (!isFigmaFile) {
+                if (isInjected) {
+                    console.log('FigPal: Left design file -> Teardown');
+                    teardown();
+                }
+                return;
+            }
 
-            if (!isFigmaFile) return;
-
+            // We are in a file, proceed with logic
             const urlMatch = window.location.href.match(/\/design\/([^\/]+)/) ||
-                window.location.href.match(/\/file\/([^\/]+)/);
+                window.location.href.match(/\/file\/([^\/]+)/) ||
+                window.location.href.match(/\/board\/([^\/]+)/);
+
             if (urlMatch) FP.state.fileKey = urlMatch[1];
 
             const nodeMatch = window.location.href.match(/[?&]node-id=([^&]+)/);
             if (nodeMatch) {
                 const rawId = decodeURIComponent(nodeMatch[1]);
                 FP.state.selectedNodeId = rawId.replace('-', ':');
+            } else {
+                FP.state.selectedNodeId = null;
             }
 
             // 2. Main Injection Logic
-            const toolbarWrapper = document.querySelector('[data-testid="design-toolbelt-wrapper"]');
+            const toolbarWrapper = document.querySelector('[data-testid="design-toolbelt-wrapper"]') ||
+                document.querySelector('[class*="toolbar_view--toolbar"]');
 
             // Align to Toolbar Mode Switcher
             alignToToolbar();
@@ -46,10 +55,34 @@
             const targetElement = toolbarWrapper || document.querySelector('[data-testid="objects-panel"]');
 
             if (targetElement) {
-                inject();
+                if (!isInjected) {
+                    inject();
+                }
                 injectToolbarButton(toolbarWrapper);
             }
         }, 1000);
+    }
+
+    function teardown() {
+        // Remove Main Container
+        const container = document.getElementById('figpal-container');
+        if (container) container.remove();
+
+        // Remove Home Signpost
+        const home = document.getElementById('figpal-home');
+        if (home) home.remove();
+
+        // Remove Toolbar Buttons
+        document.querySelectorAll('.figpal-toolbar-btn').forEach(btn => btn.remove());
+
+        // Reset State
+        isInjected = false;
+        FP.state.elements = {};
+        FP.state.fileKey = null;
+        FP.state.selectedNodeId = null;
+
+        // Reset body classes
+        document.body.classList.remove('figpal-ui-hidden', 'figpal-dev-mode', 'figpal-is-docked');
     }
 
     // ─── Alignment Logic ─────────────────────────────────────────────────
