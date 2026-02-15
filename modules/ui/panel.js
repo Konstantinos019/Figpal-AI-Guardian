@@ -220,7 +220,7 @@
 
                         <!-- Textbox / Namer -->
                         <div class="figpal-namer-row">
-                            <input type="text" class="figpal-namer-input" placeholder="Name your pal" value="FigBot" />
+                            <input type="text" class="figpal-namer-input" placeholder="Name your pal" value="FigBot" maxlength="18" />
                         </div>
                     </div>
 

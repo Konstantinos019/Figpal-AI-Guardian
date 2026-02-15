@@ -193,17 +193,7 @@
         const row = document.createElement('div');
         row.classList.add('figpal-message-row', sender);
 
-        if (sender === 'bot') {
-            const avatar = document.createElement('div');
-            avatar.className = 'figpal-avatar bot-avatar';
-
-            // Use layered rendering
-            if (FP.sprite?.assemble) {
-                avatar.innerHTML = FP.sprite.assemble(FP.state.activePal || {});
-            }
-
-            row.appendChild(avatar);
-        }
+        // Bot avatars removed per user request (redundant with header avatar)
 
         const msgDiv = document.createElement('div');
         msgDiv.classList.add('figpal-message', sender);

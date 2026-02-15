@@ -280,6 +280,7 @@
             <div class="figpal-chat-header">
         <div class="figpal-resizer left"></div>
         <div class="figpal-header-left">
+          <div id="figpal-header-avatar" class="figpal-header-avatar"></div>
           <span id="figpal-header-name">DS Guardian</span>
           <div id="figpal-connection-dot" class="figpal-status-dot" title="Bridge Status"></div>
         </div>
@@ -698,11 +699,18 @@
             options.accessory = "Lightbulb";
         }
 
-        FP.state.elements.follower.innerHTML = FP.sprite.assemble(options);
+        const assembledSvg = FP.sprite.assemble(options);
+        FP.state.elements.follower.innerHTML = assembledSvg;
+
+        // Also update the header avatar if present
+        const headerAvatar = document.getElementById('figpal-header-avatar');
+        if (headerAvatar) {
+            headerAvatar.innerHTML = assembledSvg;
+        }
     }
 
     function updatePalName(name) {
-        const safeName = name || "FigBot";
+        const safeName = (name || "FigBot").slice(0, 18);
 
         // 1. Update Chat Header
         const headerName = document.getElementById('figpal-header-name');

@@ -98,6 +98,10 @@ body.figpal-ui-hidden #figpal-container.resting #figpal-follower {
   /* Remove gaps */
   margin-left: -0.5px;
   margin-right: -0.5px;
+
+  /* Constraints from Figma */
+  min-width: 56px;
+  /* max-width removed per user request - character limit is 18 */
 }
 
 #figpal-home-text {
@@ -110,6 +114,13 @@ body.figpal-ui-hidden #figpal-container.resting #figpal-follower {
   position: relative;
   top: 1px;
   /* Visual tweak */
+
+  /* Ellipsis logic */
+  display: block;
+  width: 100%;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 /* Show home only when the container is NOT resting (is following) */
@@ -367,6 +378,50 @@ body.figpal-dev-mode .figpal-chat-input-area input {
   opacity: 1 !important;
 }
 
+/* Sidebar Avatar */
+.figpal-header-avatar {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  border: 1px solid #E5E5E5;
+  background: #FFFFFF;
+  display: none;
+  /* Only in docked mode */
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  flex-shrink: 0;
+  position: relative;
+}
+
+/* Character positioning inside the 40px circle */
+.figpal-header-avatar .figpal-sprite-container {
+  position: absolute;
+  /* Reusable component logic: character is 75% height of container, pinned to top */
+  height: 75%;
+  width: 100%;
+  left: 0;
+  top: 0;
+  /* Flip the character horizontally to face the content */
+  transform: scaleX(-1);
+
+  /* Reset source-specific constraints to allow percentage scaling */
+  min-width: unset;
+  min-height: unset;
+
+  pointer-events: none;
+}
+
+body.figpal-dev-mode .figpal-header-avatar {
+  background: #2c2c2c;
+  border-color: #333;
+}
+
+/* Show avatar only when docked */
+body.figpal-is-docked .figpal-header-avatar {
+  display: flex;
+}
+
 /* Chat Content Area */
 .figpal-chat-content {
   padding: 16px;
@@ -395,22 +450,9 @@ body.figpal-dev-mode .figpal-chat-input-area input {
   flex-direction: row-reverse;
 }
 
-/* Avatar Styling */
+/* Avatar Styling - Deprecated in messages, used in header */
 .figpal-avatar {
-  width: 24px;
-  height: 24px;
-  flex-shrink: 0;
-  border-radius: 0;
-  /* Removed masking per request */
-  margin-top: 2px;
-  /* Align with text baseline */
-  position: relative;
-  /* Support for layered children */
-}
-
-.figpal-avatar.bot-avatar {
-  transform: scaleX(-1);
-  /* Differentiate bot from resting pal */
+  display: none;
 }
 
 /* Message Bubble Base */
