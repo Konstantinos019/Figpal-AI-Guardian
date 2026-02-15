@@ -12,7 +12,9 @@
     "https://generativelanguage.googleapis.com/*",
     "https://api.x.ai/*",
     "https://api.openai.com/*",
-    "https://api.anthropic.com/*"
+    "https://api.anthropic.com/*",
+    "https://slack.com/*",
+    "https://hooks.slack.com/*"
   ],
   "content_scripts": [
     {
@@ -21,6 +23,7 @@
       ],
       "js": [
         "modules/core/event-bus.js",
+        "modules/core/logger.js",
         "modules/character/sprite.js",
         "modules/ui/panel.js",
         "modules/chat/renderer.js",
@@ -32,11 +35,20 @@
         "modules/onboarding/setup.js",
         "modules/ui/components/Button.js",
         "modules/chat/commands.js",
+        "modules/chat/autocomplete.js",
+        "modules/chat/ui.js",
         "modules/chat/flow.js",
         "modules/character/physics.js",
         "modules/character/interactions.js",
         "modules/figma/automation.js",
         "modules/core/vfs.js",
+        "modules/core/workflow-engine.js",
+        "modules/core/skill-engine.js",
+        "modules/core/diff-engine.js",
+        "modules/core/monitor.js",
+        "modules/features/web-search.js",
+        "modules/core/injector.js",
+        "modules/features/web-search.js",
         "modules/core/injector.js",
         "content.js"
       ],

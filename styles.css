@@ -1869,3 +1869,101 @@ body.resizing #react-page,
   color: #007BE5;
   text-decoration: underline;
 }
+
+/* Autocomplete Overlay */
+.figpal-autocomplete-overlay {
+  position: absolute;
+  bottom: calc(100% + 12px);
+  /* Lifted slightly more */
+  left: 8px;
+  right: 8px;
+  background: #FFFFFF;
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  border-radius: 12px;
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.12), 0 2px 8px rgba(0, 0, 0, 0.08);
+  /* Softer, premium shadow */
+  max-height: 240px;
+  overflow-y: auto;
+  z-index: 10001;
+  display: none;
+  animation: figpal-pop-up 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes figpal-pop-up {
+  from {
+    opacity: 0;
+    transform: translateY(8px) scale(0.98);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.figpal-autocomplete-item {
+  padding: 10px 14px;
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  transition: background 0.15s ease;
+  border-bottom: 0.5px solid rgba(0, 0, 0, 0.03);
+}
+
+.figpal-autocomplete-item:last-child {
+  border-bottom: none;
+}
+
+.figpal-autocomplete-item:hover,
+.figpal-autocomplete-item.selected {
+  background: #F0F7FF;
+}
+
+.figpal-autocomplete-item .cmd-trigger {
+  font-weight: 600;
+  font-size: 13px;
+  color: #0D99FF;
+  font-family: 'Inter', sans-serif;
+}
+
+.figpal-autocomplete-item .cmd-desc {
+  font-size: 11px;
+  color: #888;
+  font-family: 'Inter', sans-serif;
+}
+
+.figpal-autocomplete-item.empty {
+  cursor: default;
+  background: transparent !important;
+  opacity: 0.8;
+}
+
+.figpal-autocomplete-item.empty .cmd-trigger {
+  color: #888;
+  font-weight: 400;
+}
+
+/* Dev Mode Autocomplete */
+body.figpal-dev-mode .figpal-autocomplete-overlay {
+  background: #2C2C2C;
+  border-color: rgba(255, 255, 255, 0.1);
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.4);
+}
+
+body.figpal-dev-mode .figpal-autocomplete-item {
+  border-bottom-color: rgba(255, 255, 255, 0.05);
+}
+
+body.figpal-dev-mode .figpal-autocomplete-item:hover,
+body.figpal-dev-mode .figpal-autocomplete-item.selected {
+  background: #3E3E3E;
+}
+
+body.figpal-dev-mode .figpal-autocomplete-item .cmd-trigger {
+  color: #00D37E;
+}
+
+body.figpal-dev-mode .figpal-autocomplete-item .cmd-desc {
+  color: #AAA;
+}

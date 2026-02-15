@@ -3,6 +3,28 @@
 
 export const TOOLS = [
     {
+        name: "figma_execute",
+        description: "POWER TOOL: Execute arbitrary JavaScript using the Figma Plugin API. Use this for complex layouts, batch operations, or creating design system components from scratch.",
+        parameters: {
+            type: "object",
+            properties: {
+                code: { type: "string", description: "The JavaScript code to execute. Can use async/await. Has access to the 'figma' global." },
+                timeout: { type: "number", description: "Optional timeout in ms (default 5000)" }
+            },
+            required: ["code"]
+        }
+    },
+    {
+        name: "get_design_tokens",
+        description: "Fetch all local variables and collections (design tokens) from the current file.",
+        parameters: {
+            type: "object",
+            properties: {
+                refresh: { type: "boolean", description: "Force a fresh fetch instead of using cached data." }
+            }
+        }
+    },
+    {
         name: "rename_node",
         description: "Rename the currently selected node specifically.",
         parameters: {

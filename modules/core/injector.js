@@ -19,6 +19,11 @@
     // ─── SPA Polling ─────────────────────────────────────────────────────
     function start() {
         setInterval(() => {
+            // Safety: If extension reloaded, stop the loop to avoid "Context Invalidated" spam.
+            if (typeof chrome === 'undefined' || !chrome.runtime || !chrome.runtime.id) {
+                return;
+            }
+
             // 1. URL check
             const isFigmaFile = /figma\.com\/(design|file|proto|board)\//.test(window.location.href);
 
@@ -442,11 +447,12 @@
             // ─── Wire up UI ──────────────────────────────────────────────────
             wireCloseButton(chatBubble, container);
             wireDockButton(chatBubble, container);
-            wireModelSelector(chatBubble);
-            wireSendButton(chatBubble);
-            wireStopButton(chatBubble, follower);
-            wireInputListeners(chatBubble);
-            wireAuthModal(container); // New functionality
+            wireAuthModal(container);
+
+            // Initialize Chat UI (Modular)
+            if (FP.chatUI && FP.chatUI.init) {
+                FP.chatUI.init(chatBubble);
+            }
 
             reRenderFollower();
 
@@ -557,118 +563,6 @@
         });
     }
 
-    function wireModelSelector(chatBubble) {
-        const modelSelector = chatBubble.querySelector('#figpal-model-selector');
-        const modelNameDisplay = chatBubble.querySelector('#figpal-model-name');
-        if (!modelSelector) return;
-
-        function updateDisplay() {
-            if (modelNameDisplay) {
-                modelNameDisplay.textContent = modelSelector.value;
-            }
-        }
-
-        function populateModels() {
-            const provider = FP.state.provider || 'gemini';
-            const cfg = FP.ai.PROVIDERS[provider];
-            if (!cfg) return;
-
-            modelSelector.innerHTML = '';
-            cfg.models.forEach(m => {
-                const opt = document.createElement('option');
-                opt.value = m;
-                opt.textContent = m;
-                modelSelector.appendChild(opt);
-            });
-
-            // Set current selection
-            if (FP.state.selectedModel && cfg.models.includes(FP.state.selectedModel)) {
-                modelSelector.value = FP.state.selectedModel;
-            } else {
-                modelSelector.value = cfg.models[0];
-                FP.state.selectedModel = cfg.models[0];
-            }
-            updateDisplay();
-        }
-
-        // Initialize
-        populateModels();
-
-        // Load saved selection
-        chrome.storage.local.get(['selectedModel', 'provider'], (res) => {
-            if (res.provider) FP.state.provider = res.provider;
-            if (res.selectedModel) {
-                FP.state.selectedModel = res.selectedModel;
-                populateModels(); // Re-populate with correct models and select saved one
-            }
-        });
-
-        modelSelector.addEventListener('change', (e) => {
-            FP.state.selectedModel = e.target.value;
-            console.log(`FigPal: Model changed to ${FP.state.selectedModel} `);
-            chrome.storage.local.set({ selectedModel: e.target.value });
-            updateDisplay();
-        });
-
-        // Refresh when provider changes (e.g., via /connect or setup)
-        FP.on('setup-complete', (data) => {
-            populateModels();
-        });
-    }
-
-    function wireSendButton(chatBubble) {
-        const sendBtn = chatBubble.querySelector('#figpal-send-btn');
-        const chatInput = chatBubble.querySelector('.figpal-chat-input-area input');
-
-        sendBtn.addEventListener('click', (e) => {
-            e.stopPropagation();
-            if (chatInput && chatInput.value.trim() !== '') {
-                const text = chatInput.value.trim();
-                chatInput.value = '';
-                FP.flow.handleUserMessage(text);
-            }
-        });
-    }
-
-    function wireStopButton(chatBubble, follower) {
-        const stopBtn = chatBubble.querySelector('#figpal-stop-btn');
-
-        stopBtn.addEventListener('click', (e) => {
-            e.stopPropagation();
-            FP.ai.abort();
-
-            toggleInputState(chatBubble, false);
-
-            const thinkingMsg = chatBubble.querySelector('.figpal-message.thinking');
-            if (thinkingMsg) {
-                thinkingMsg.textContent = 'Stopped by user.';
-                thinkingMsg.classList.remove('thinking');
-                thinkingMsg.classList.add('figpal-error');
-            }
-
-            FP.state.isThinking = false;
-            reRenderFollower();
-            follower.classList.remove('thinking');
-        });
-    }
-
-    function wireInputListeners(chatBubble) {
-        const chatInput = chatBubble.querySelector('.figpal-chat-input-area input');
-        if (!chatInput) return;
-
-        chatInput.addEventListener('keydown', (e) => {
-            e.stopPropagation();
-            if (e.key === 'Enter') {
-                const userText = chatInput.value.trim();
-                if (userText) {
-                    chatInput.value = '';
-                    FP.flow.handleUserMessage(userText);
-                }
-            }
-        });
-        chatInput.addEventListener('paste', (e) => e.stopPropagation());
-        chatInput.addEventListener('contextmenu', (e) => e.stopPropagation());
-    }
 
     function wireAuthModal(container) {
         const modal = container.querySelector('#figpal-auth-modal');
@@ -733,20 +627,6 @@
         });
     }
 
-    function toggleInputState(chatBubble, isThinking) {
-        const sendBtn = chatBubble.querySelector('#figpal-send-btn');
-        const stopBtn = chatBubble.querySelector('#figpal-stop-btn');
-        const chatInput = chatBubble.querySelector('.figpal-chat-input-area input');
-
-        if (isThinking) {
-            sendBtn.style.display = 'none';
-            stopBtn.style.display = 'flex';
-        } else {
-            stopBtn.style.display = 'none';
-            sendBtn.style.display = 'flex';
-            setTimeout(() => chatInput?.focus(), 50);
-        }
-    }
 
     function reRenderFollower(palToRender = null) {
         if (!FP.state.elements.follower || !FP.sprite?.assemble) return;

@@ -453,6 +453,10 @@
         // Name Input Logic
         const nameInput = overlay.querySelector('.figpal-namer-input');
         if (nameInput) {
+            nameInput.addEventListener('keydown', (e) => e.stopPropagation());
+            nameInput.addEventListener('paste', (e) => e.stopPropagation());
+            nameInput.addEventListener('contextmenu', (e) => e.stopPropagation());
+
             nameInput.addEventListener('input', (e) => {
                 currentPal.name = e.target.value;
                 // Preview name change on signpost/header

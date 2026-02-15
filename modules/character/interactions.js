@@ -149,10 +149,29 @@
                 console.log(`FigPal Debug: ${e.code}/${e.key} | Alt:${e.altKey} | Meta:${e.metaKey} | Target:${e.target.tagName}#${e.target.id || 'none'}`);
             }
 
-            // Skip ONLY IF typing in a legitimate text field (not Figma's internal capture input).
+            // Detect if we are in our OWN inputs
+            const isOurInput = e.target.closest && e.target.closest('#figpal-container, #figpal-panel-overlay');
             const isControl = e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA' || e.target.isContentEditable;
-            const isOurInput = e.target.closest && e.target.closest('#figpal-container');
             const isFigmaCapture = e.target.id === 'focus-target' || e.target.classList.contains('focus-target');
+
+            // IF it's our input, we must ensure Cmd+V and other shortcuts work
+            if (isOurInput) {
+                // We ONLY block specific clipboard/Figma shortcuts in the capture phase.
+                // Standard keys like Enter, Tab, Escape, and basic typing should be allowed 
+                // to flow to the input's own listeners (bubbling phase).
+                const isClipboardAction = (e.metaKey || e.ctrlKey) && ['KeyV', 'KeyC', 'KeyX', 'KeyA', 'KeyZ'].includes(e.code);
+                const isNavKey = ['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown', 'Backspace', 'Delete'].includes(e.key);
+
+                if (isClipboardAction) {
+                    // Stop Figma from catching Cmd+V/C/X etc.
+                    e.stopPropagation();
+                    return;
+                }
+
+                // For all other keys inside our inputs (including Enter), we let them through.
+                // The input elements themselves (in ui.js or setup.js) will call e.stopPropagation() 
+                // in the BUBBLING phase to prevent Figma from seeing them after we handle them.
+            }
 
             if (isControl && !isOurInput && !isFigmaCapture) {
                 return;

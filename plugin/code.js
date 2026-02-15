@@ -11,7 +11,82 @@ const MEMORY = {
     model: 'gpt-4o'
 };
 
+// ============================================================================
+// CONSOLE CAPTURE — Intercept console.* in the QuickJS sandbox and forward
+// to ui.html via postMessage so the WebSocket bridge can relay them to the MCP
+// server. This enables console monitoring without CDP.
+// ============================================================================
+(function () {
+    var levels = ['log', 'info', 'warn', 'error', 'debug'];
+    var originals = {};
+    for (var i = 0; i < levels.length; i++) {
+        originals[levels[i]] = console[levels[i]];
+    }
+
+    function safeSerialize(val) {
+        if (val === null || val === undefined) return val;
+        if (typeof val === 'string' || typeof val === 'number' || typeof val === 'boolean') return val;
+        try {
+            // Attempt JSON round-trip for objects/arrays (catches circular refs)
+            return JSON.parse(JSON.stringify(val));
+        } catch (e) {
+            return String(val);
+        }
+    }
+
+    for (var i = 0; i < levels.length; i++) {
+        (function (level) {
+            console[level] = function () {
+                // Call the original so output still appears in Figma DevTools
+                originals[level].apply(console, arguments);
+
+                // Serialize arguments safely
+                var args = [];
+                for (var j = 0; j < arguments.length; j++) {
+                    args.push(safeSerialize(arguments[j]));
+                }
+
+                // Build message text from all arguments
+                var messageParts = [];
+                for (var j = 0; j < arguments.length; j++) {
+                    messageParts.push(typeof arguments[j] === 'string' ? arguments[j] : String(arguments[j]));
+                }
+
+                figma.ui.postMessage({
+                    type: 'CONSOLE_CAPTURE',
+                    level: level,
+                    message: messageParts.join(' '),
+                    args: args,
+                    timestamp: Date.now()
+                });
+            };
+        })(levels[i]);
+    }
+})();
+
 const TOOLS = [
+    {
+        name: "figma_execute",
+        description: "POWER TOOL: Execute arbitrary JavaScript using the Figma Plugin API. Use this for complex layouts, batch operations, or creating design system components from scratch.",
+        parameters: {
+            type: "object",
+            properties: {
+                code: { type: "string", description: "The JavaScript code to execute. Can use async/await. Has access to the 'figma' global." },
+                timeout: { type: "number", description: "Optional timeout in ms (default 5000)" }
+            },
+            required: ["code"]
+        }
+    },
+    {
+        name: "get_design_tokens",
+        description: "Fetch all local variables and collections (design tokens) from the current file.",
+        parameters: {
+            type: "object",
+            properties: {
+                refresh: { type: "boolean", description: "Force a fresh fetch instead of using cached data." }
+            }
+        }
+    },
     {
         name: "rename_node",
         description: "Rename the currently selected node specifically.",
@@ -129,8 +204,53 @@ const PROVIDERS = {
 
 // ─── ENTRY POINT ─────────────────────────────────────────────────────
 
+// Immediately fetch and send variables data to UI on startup
+(async () => {
+    try {
+        console.log('FigPal Bridge: Initializing variables fetch...');
+        await sendVariablesData();
+    } catch (e) {
+        console.error('FigPal Bridge: Failed to fetch initial variables', e);
+    }
+})();
+
+async function sendVariablesData(id) {
+    // Get all local variables and collections
+    const variables = await figma.variables.getLocalVariablesAsync();
+    const collections = await figma.variables.getLocalVariableCollectionsAsync();
+
+    figma.ui.postMessage({
+        type: 'VARIABLES_DATA',
+        id: id || 'system-init',
+        data: {
+            success: true,
+            timestamp: Date.now(),
+            fileKey: figma.fileKey || null,
+            variables: variables.map(v => ({
+                id: v.id,
+                name: v.name,
+                key: v.key,
+                resolvedType: v.resolvedType,
+                valuesByMode: v.valuesByMode,
+                variableCollectionId: v.variableCollectionId,
+                scopes: v.scopes,
+                description: v.description,
+                hiddenFromPublishing: v.hiddenFromPublishing
+            })),
+            variableCollections: collections.map(c => ({
+                id: c.id,
+                name: c.name,
+                key: c.key,
+                modes: c.modes,
+                defaultModeId: c.defaultModeId,
+                variableIds: c.variableIds
+            }))
+        }
+    });
+}
+
 figma.ui.onmessage = async (msg) => {
-    // msg structure: { pluginMessage: { type, id, data } }
+    // msg structure: { type, id, data, code, timeout, requestId }
     const { type, id, data } = msg;
 
     // ─── Handshake & Auth ───
@@ -188,6 +308,58 @@ figma.ui.onmessage = async (msg) => {
 
     if (type === 'notify') {
         figma.notify(data.message || 'FigPal notification');
+    }
+
+    if (type === 'GET_VARIABLES') {
+        await sendVariablesData(id);
+    }
+
+    // ============================================================================
+    // EXECUTE_CODE - Arbitrary code execution (Transplanted from Southleft)
+    // ============================================================================
+    if (type === 'EXECUTE_CODE') {
+        const requestId = id || msg.requestId;
+        try {
+            console.log('FigPal Bridge: Executing code...');
+            var wrappedCode = "(async function() {\n" + msg.code + "\n})()";
+            var timeoutMs = msg.timeout || 5000;
+            var timeoutPromise = new Promise((_, reject) => {
+                setTimeout(() => reject(new Error('Execution timed out after ' + timeoutMs + 'ms')), timeoutMs);
+            });
+
+            var codePromise;
+            try {
+                codePromise = eval(wrappedCode);
+            } catch (syntaxError) {
+                const syntaxErrorMsg = syntaxError && syntaxError.message ? syntaxError.message : String(syntaxError);
+                console.error('FigPal Bridge: Syntax error in code:', syntaxErrorMsg);
+                figma.ui.postMessage({
+                    type: 'EXECUTE_CODE_RESULT',
+                    id: requestId,
+                    success: false,
+                    error: 'Syntax error: ' + syntaxErrorMsg
+                });
+                return;
+            }
+
+            var result = await Promise.race([codePromise, timeoutPromise]);
+            console.log('FigPal Bridge: Code executed successfully');
+
+            figma.ui.postMessage({
+                type: 'EXECUTE_CODE_RESULT',
+                id: requestId,
+                success: true,
+                result: result
+            });
+        } catch (err) {
+            console.error('FigPal Bridge: Execution error:', err.message);
+            figma.ui.postMessage({
+                type: 'EXECUTE_CODE_RESULT',
+                id: requestId,
+                success: false,
+                error: err.message
+            });
+        }
     }
 
     if (type === 'get-file-info') {

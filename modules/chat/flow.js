@@ -9,8 +9,22 @@
 
     // ─── Handle User Message ─────────────────────────────────────────────
     async function handleUserMessage(text, specificResponse) {
+        // 0. Handle command creation definition phase
+        if (FP.state.awaitingCommandDef) {
+            const cmdName = FP.state.awaitingCommandDef;
+            FP.commands.tryHandle(`FIX:SAVE_CUSTOM_CMD|${cmdName}`, text);
+            return;
+        }
+
         // 1. Try slash commands first
         if (FP.commands.tryHandle(text)) return;
+
+        // 🛡️ Slash Shield: Block unknown commands from reaching AI
+        if (text.startsWith('/')) {
+            const cmd = text.split(' ')[0];
+            FP.chat.addMessage(`⚠️ **Unknown Command:** \`${cmd}\`\n\nWould you like to create this command? If so, tell me what it should do!\n\n[[Action:Create]] [Create ${cmd}:FIX:START_CREATE_CMD|${cmd}]`, 'bot');
+            return;
+        }
 
         // 2. Add user message to chat
         FP.chat.addMessage(text, 'user');

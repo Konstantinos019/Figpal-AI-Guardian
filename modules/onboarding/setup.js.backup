@@ -298,28 +298,18 @@
         const isPluginConnected = FP.pluginBridge && FP.pluginBridge.isConnected;
         const palName = (FP.state.activePal && FP.state.activePal.name) ? FP.state.activePal.name : "FigBot";
 
-        if (isPluginConnected) {
-            // Simple message when plugin is connected
-            FP.chat.addMessage(
-                `Hey! I'm **${palName}** 🛡️ (powered by **${providerName}**).\n\n` +
-                `I am connected to your Figma! Select any layer to start.\n\n` +
-                `Type **/help** to see available commands.`,
-                'bot'
-            );
-        } else {
-            // Clear warning and instructions when plugin is not connected
-            FP.chat.addMessage(
-                `Hey! I'm **${palName}** 🛡️ (powered by **${providerName}**).\n\n` +
-                `⚠️ **Plugin Required:** To use FigPal, you need to run the **FigPal Bridge** plugin in Figma.\n\n` +
-                `**To Connect:**\n` +
-                `1. Press \`Cmd + /\`in Figma\n` +
-                `2. Type \`FigPal Bridge\`\n` +
-                `3. Press Enter\n\n` +
-                `I will auto-connect instantly! ⚡\n\n` +
-                `Type **/help** to see available commands.`,
-                'bot'
-            );
-        }
+        FP.chat.addMessage(
+            `Hey! I'm **${palName}** 🛡️ (powered by **${providerName}**).\n\n` +
+            `I can help you:\n` +
+            `- **Analyze** your Figma selections ${isPluginConnected ? '**(Native ✅)**' : ''}\n` +
+            `- **Check** design system compliance\n` +
+            `- **Suggest** improvements\n\n` +
+            `${isPluginConnected
+                ? 'I am connected to your Figma! Select any layer to start.'
+                : 'Pro tip: Run the **FigPal Bridge** plugin in Figma for better performance!'}\n\n` +
+            `_Quick commands: /reset, /clear, /check, /connect_`,
+            'bot'
+        );
 
         showQuickStartButtons();
     }

@@ -67,6 +67,28 @@
                 } else if (msg.type === 'auth-success') {
                     console.log('FigPal Bridge: Plugin authenticated.');
                     FP.emit('auth-success');
+                } else if (msg.type === 'CONSOLE_CAPTURE') {
+                    // Forward plugin console to extension console for debugging
+                    const { level, message, args, timestamp } = msg;
+                    const prefix = `[Figma Plugin ${level.toUpperCase()}]`;
+                    console[level](prefix, message, ...args);
+                    FP.emit('plugin-console', msg);
+                } else if (msg.type === 'VARIABLES_DATA') {
+                    console.log('FigPal Bridge: Received Design Tokens (variables)');
+                    FP.state.designTokens = msg.data;
+                    FP.emit('tokens-updated', msg.data);
+
+                    // Resolve any pending request
+                    if (msg.id && this.pendingRequests.has(msg.id)) {
+                        this.pendingRequests.get(msg.id)(msg.data);
+                        this.pendingRequests.delete(msg.id);
+                    }
+                } else if (msg.type === 'EXECUTE_CODE_RESULT') {
+                    const resolve = this.pendingRequests.get(msg.id);
+                    if (resolve) {
+                        resolve(msg.success ? { success: true, result: msg.result } : { success: false, error: msg.error });
+                        this.pendingRequests.delete(msg.id);
+                    }
                 }
             });
 
@@ -182,6 +204,34 @@
                 type: 'set-credentials',
                 data: credentials
             });
+        },
+
+        async execute(code, timeout = 5000) {
+            if (!this.isConnected) return { success: false, error: 'Plugin not connected' };
+            const id = ++this.requestId;
+            return new Promise((resolve) => {
+                this.pendingRequests.set(id, resolve);
+                this.sendToPlugin({
+                    source: 'figpal-extension',
+                    type: 'EXECUTE_CODE',
+                    id,
+                    code,
+                    timeout
+                });
+
+                setTimeout(() => {
+                    if (this.pendingRequests.has(id)) {
+                        this.pendingRequests.delete(id);
+                        resolve({ success: false, error: 'Execution timed out' });
+                    }
+                }, timeout + 500);
+            });
+        },
+
+        async getDesignTokens(refresh = false) {
+            if (!this.isConnected) return null;
+            if (!refresh && FP.state.designTokens) return FP.state.designTokens;
+            return this.request('GET_VARIABLES');
         }
     };
 
