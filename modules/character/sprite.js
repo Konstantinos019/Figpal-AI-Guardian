@@ -50,39 +50,49 @@
         let layersHtml = "";
 
         // 1. Character Body (Includes eyes, mouth, etc.)
-        const variantFile = `Color=${colorName}.svg`;
-        const bodyUrl = getAsset(`${palsPath}/${category}/${subType}/${variantFile}`);
+        let bodyUrl;
+        if (category === "Custom") {
+            bodyUrl = getAsset(`${palsPath}/${category}/${subType}.svg`);
+        } else {
+            const variantFile = `Color=${colorName}.svg`;
+            bodyUrl = getAsset(`${palsPath}/${category}/${subType}/${variantFile}`);
+        }
+
         const errLog = `console.error('FigPal: Image load failure -> ' + this.src)`;
 
         layersHtml += `<img src="${bodyUrl}" onerror="${errLog}" style="position:absolute; inset:0; width:100%; height:100%; object-fit:contain; z-index:1;">`;
 
         // 2. Accessory Layer
         if (accessory && accessory !== "None") {
-            // Determine position based on pal family & subtype
-            // Default position (Top for almost everyone: Objects, Food, Figma, most Animals)
-            let position = "Top";
+            // Determine position: use explicit accessoryPosition if provided, else default/override logic
+            let position = options.accessoryPosition;
 
-            // Specific overrides for certain Animals
-            const positionOverrides = {
-                // Left aligned
-                "Snake": "Left",
-                "Duck": "Left",
-                "Caterpillar": "Left",
-                "Bird": "Left",
-                "Capybara": "Left",
+            if (!position) {
+                // Default position (Top for almost everyone: Objects, Food, Figma, most Animals)
+                position = "Top";
 
-                // Bottom aligned
-                "Cat": "Bottom",
-                "Dog": "Bottom",
-                "Rodent": "Bottom",
+                // Specific overrides for certain Animals
+                const positionOverrides = {
+                    // Left aligned
+                    "Snake": "Left",
+                    "Duck": "Left",
+                    "Caterpillar": "Left",
+                    "Bird": "Left",
+                    "Capybara": "Left",
 
-                // Right aligned
-                "Snail": "Right"
-            };
+                    // Bottom aligned
+                    "Cat": "Bottom",
+                    "Dog": "Bottom",
+                    "Rodent": "Bottom",
 
-            // If an override exists for this subType, use it. Otherwise default to Top.
-            if (positionOverrides[subType]) {
-                position = positionOverrides[subType];
+                    // Right aligned
+                    "Snail": "Right"
+                };
+
+                // If an override exists for this subType, use it. Otherwise default to Top.
+                if (positionOverrides[subType]) {
+                    position = positionOverrides[subType];
+                }
             }
 
             const accessoryUrl = getAsset(`assets/Accessories/${position}/${accessory}.svg`);
@@ -112,8 +122,9 @@
         const getAsset = (path) => {
             try { return chrome.runtime.getURL(path); } catch (e) { return ""; }
         };
-        const stageUrl = getAsset(`assets/stage/Category=${category}.svg`);
-        console.log(`FigPal Debug: Stage lookup -> category="${category}", path="assets/stage/Category=${category}.svg", url="${stageUrl}"`);
+        const stageCategory = (category === "Custom") ? "Object" : category;
+        const stageUrl = getAsset(`assets/stage/Category=${stageCategory}.svg`);
+        console.log(`FigPal Debug: Stage lookup -> category="${category}", path="assets/stage/Category=${stageCategory}.svg", url="${stageUrl}"`);
         const errLog = `console.error('FigPal Error: Stage failed to load -> ' + this.src)`;
 
         return `<img src="${stageUrl}" onerror="${errLog}" class="figpal-stage-svg" style="width:100%; height:100%; display:block; object-fit:contain;">`;

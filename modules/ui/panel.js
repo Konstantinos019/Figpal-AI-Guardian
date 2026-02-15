@@ -30,7 +30,8 @@
             "Object": ["Rock", "Cloud", "Star", "Mushroom", "Flower", "Bus", "Poo", "Ball", "Rainbow"],
             "Animal": ["Capybara", "Bird", "Rodent", "Dog", "Cat", "Caterpillar", "Duck", "Frog", "Fish", "Pufferfish", "Snail", "Elephant", "Snake"],
             "Food": ["Pancake", "Coffee", "Onigiri", "Veggie", "Pizza", "Bao", "Bread", "Sushi", "Boba", "Fruit", "Coconut", "Egg"],
-            "Figma": ["Heart", "Pencil", "Comment", "Library", "Overlap", "Union", "Pen", "Pointer", "Figma"]
+            "Figma": ["Heart", "Pencil", "Comment", "Library", "Overlap", "Union", "Pen", "Pointer", "Figma"],
+            "Custom": ["ClawdBot"]
         };
 
         const colorRegistry = [
@@ -46,11 +47,12 @@
         ];
 
         const accessoryRegistry = [
-            "None", "Angry", "Antennae", "BeigeHat", "BlueHat", "Candle", "Excitement", "Flower",
-            "GrayHat", "GreenBeanie", "Halo", "Heart", "Lightbulb", "PartyHat", "PinkBeanie",
             "PropellerHat", "Question", "RedBeanie", "Sparkle", "Sprout", "Sweat", "Thinking",
             "Tophat", "WitchHat", "WizardHat"
         ];
+
+        // Custom config registry (per-subtype memory for accessories/positions)
+        const customConfigs = {};
 
         // Load saved state
         chrome.storage.local.get(['activePal'], (res) => {
@@ -102,30 +104,52 @@
             currentPal.colorName = randomColorObj.name;
             currentPal.color = randomColorObj.hex;
 
-            // Random Accessory (including None)
-            // Giving "None" a slightly higher weight for cleaner looks sometimes? 
-            // Or just pure random. Let's go pure random for maximum chaos/surprise.
-            const randomAccessory = accessoryRegistry[Math.floor(Math.random() * accessoryRegistry.length)];
-            currentPal.accessory = randomAccessory;
+            // Accessory Logic
+            if (currentPal.category === 'Custom') {
+                // If shuffle picks Custom, don't use the standard randomAccessory
+                // Just use what's already in the config or default to None
+                const config = customConfigs[currentPal.subType] || {};
+                currentPal.accessory = config.accessory || "None";
+            } else {
+                const randomAccessory = accessoryRegistry[Math.floor(Math.random() * accessoryRegistry.length)];
+                currentPal.accessory = randomAccessory;
+            }
 
-            // Update UI to reflect changes
-
-            // 1. Update Tabs
+            // Update UI
             overlay.querySelectorAll('.figpal-tab').forEach(t => {
                 t.classList.toggle('active', t.dataset.tab === currentPal.category);
             });
 
-            // 2. Update Color Dots
             overlay.querySelectorAll('.color-dot').forEach(d => {
                 d.classList.toggle('selected', d.dataset.colorName === currentPal.colorName);
             });
 
             renderPreview();
 
-            // Animate button for feedback
             const btn = overlay.querySelector('.figpal-surprise-btn');
             btn.classList.add('pulse');
             setTimeout(() => btn.classList.remove('pulse'), 300);
+        };
+
+        const rotateAccessoryPosition = () => {
+            const positions = ["Top", "Right", "Bottom", "Left"];
+            const config = customConfigs[currentPal.subType] || {
+                accessory: currentPal.accessory || "None",
+                accessoryPosition: "Top"
+            };
+
+            let currentIdx = positions.indexOf(config.accessoryPosition);
+            if (currentIdx === -1) currentIdx = 0;
+
+            const nextIdx = (currentIdx + 1) % positions.length;
+            const nextPos = positions[nextIdx];
+
+            customConfigs[currentPal.subType] = {
+                accessory: config.accessory,
+                accessoryPosition: nextPos
+            };
+
+            renderPreview();
         };
 
         const safeIcon = (name, color) => (FP.sprite && FP.sprite.getIcon) ? FP.sprite.getIcon(name, color) : '';
@@ -140,12 +164,15 @@
         const renderPreview = () => {
             const previewContainer = overlay.querySelector('.figpal-pal-layers');
             if (previewContainer) {
+                const config = (currentPal.category === 'Custom') ? customConfigs[currentPal.subType] || {} : {};
+
                 previewContainer.innerHTML = safeAssemble({
                     category: currentPal.category,
                     subType: currentPal.subType,
                     colorName: currentPal.colorName,
                     color: currentPal.color,
-                    accessory: currentPal.accessory,
+                    accessory: config.accessory || currentPal.accessory,
+                    accessoryPosition: config.accessoryPosition || undefined,
                     parts: currentPal.parts
                 });
             }
@@ -153,6 +180,18 @@
             const stageDisc = overlay.querySelector('.figpal-stage-disc');
             if (stageDisc && FP.sprite && FP.sprite.getStage) {
                 stageDisc.innerHTML = FP.sprite.getStage(currentPal.category);
+            }
+
+            // Toggle Interaction Row (Dots vs Delete)
+            const dotsContainer = overlay.querySelector('.figpal-color-dots');
+            const customActions = overlay.querySelector('.figpal-custom-actions');
+
+            if (currentPal.category === 'Custom') {
+                if (dotsContainer) dotsContainer.style.display = 'none';
+                if (customActions) customActions.style.display = 'block';
+            } else {
+                if (dotsContainer) dotsContainer.style.display = 'flex';
+                if (customActions) customActions.style.display = 'none';
             }
         };
 
@@ -178,6 +217,9 @@
                             </div>
                             <div class="figpal-tab" data-tab="Figma">
                                 ${getIconFileHTML('Figma')}
+                            </div>
+                            <div class="figpal-tab" data-tab="Custom">
+                                ${getIconFileHTML('Custom avatar')}
                             </div>
                         </div>
 
@@ -205,17 +247,27 @@
                             </div>
                         </div>
 
-                        <!-- Color Dots -->
-                        <div class="figpal-color-dots">
-                            <div class="color-dot" data-color-name="Red" data-color="#cc5d5d" style="background:#cc5d5d"></div>
-                            <div class="color-dot" data-color-name="Orange" data-color="#e89f5d" style="background:#e89f5d"></div>
-                            <div class="color-dot" data-color-name="Yellow" data-color="#f2db6d" style="background:#f2db6d"></div>
-                            <div class="color-dot" data-color-name="Green" data-color="#a0c273" style="background:#a0c273"></div>
-                            <div class="color-dot" data-color-name="Blue" data-color="#8eb7cc" style="background:#8eb7cc"></div>
-                            <div class="color-dot" data-color-name="Purple" data-color="#ae8fcc" style="background:#ae8fcc"></div>
-                            <div class="color-dot" data-color-name="Pink" data-color="#e58fcc" style="background:#e58fcc"></div>
-                            <div class="color-dot selected" data-color-name="Gray" data-color="#949494" style="background:#949494"></div>
-                            <div class="color-dot" data-color-name="Black" data-color="#3d3d3d" style="background:#3d3d3d"></div>
+                        <!-- Color Dots / Custom Actions -->
+                        <div class="figpal-interaction-row" style="width: 100%; min-height: 24px;">
+                            <div class="figpal-color-dots">
+                                <div class="color-dot" data-color-name="Red" data-color="#cc5d5d" style="background:#cc5d5d"></div>
+                                <div class="color-dot" data-color-name="Orange" data-color="#e89f5d" style="background:#e89f5d"></div>
+                                <div class="color-dot" data-color-name="Yellow" data-color="#f2db6d" style="background:#f2db6d"></div>
+                                <div class="color-dot" data-color-name="Green" data-color="#a0c273" style="background:#a0c273"></div>
+                                <div class="color-dot" data-color-name="Blue" data-color="#8eb7cc" style="background:#8eb7cc"></div>
+                                <div class="color-dot" data-color-name="Purple" data-color="#ae8fcc" style="background:#ae8fcc"></div>
+                                <div class="color-dot" data-color-name="Pink" data-color="#e58fcc" style="background:#e58fcc"></div>
+                                <div class="color-dot selected" data-color-name="Gray" data-color="#949494" style="background:#949494"></div>
+                                <div class="color-dot" data-color-name="Black" data-color="#3d3d3d" style="background:#3d3d3d"></div>
+                            </div>
+                            <div class="figpal-custom-actions" style="display:none; width: 100%; display: flex; gap: 8px;">
+                                <button class="figpal-nav-btn figpal-acc-rotate-btn" id="figpal-accessory-rotate" style="flex: 1; padding: 6px; background: #fff; border: 1px solid rgba(0,0,0,0.1); border-radius: 4px; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 6px; font-size: 10px; font-weight: 500; text-transform: uppercase;">
+                                    <span>🔄</span> Rotate Position
+                                </button>
+                                <button class="figpal-delete-btn" id="figpal-delete-custom" style="padding: 6px 12px; background: transparent; border: 1px solid #FFCDCD; color: #D73A49; border-radius: 4px; cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 10px;">
+                                    <span>🗑️</span>
+                                </button>
+                            </div>
                         </div>
 
                         <!-- Textbox / Namer -->
@@ -261,6 +313,19 @@
                 overlay.querySelectorAll('.figpal-tab').forEach(t => t.classList.remove('active'));
                 tab.classList.add('active');
                 currentPal.category = tab.dataset.tab;
+
+                // Toggle Interaction Row visibility
+                const dotsContainer = overlay.querySelector('.figpal-color-dots');
+                const customActions = overlay.querySelector('.figpal-custom-actions');
+
+                if (currentPal.category === 'Custom') {
+                    if (dotsContainer) dotsContainer.style.display = 'none';
+                    if (customActions) customActions.style.display = 'block';
+                } else {
+                    if (dotsContainer) dotsContainer.style.display = 'flex';
+                    if (customActions) customActions.style.display = 'none';
+                }
+
                 // Reset to first subtype of category
                 const types = subTypeRegistry[currentPal.category] || ["Rock"];
                 currentPal.subType = types[0];
@@ -324,6 +389,36 @@
         const surpriseBtn = overlay.querySelector('#figpal-surprise-trigger');
         if (surpriseBtn) {
             surpriseBtn.addEventListener('click', surpriseMe);
+        }
+
+        // Delete Custom Button Logic
+        const deleteBtn = overlay.querySelector('#figpal-delete-custom');
+        if (deleteBtn) {
+            deleteBtn.addEventListener('click', () => {
+                if (confirm(`Are you sure you want to remove ${currentPal.subType} from your list?`)) {
+                    const types = subTypeRegistry["Custom"];
+                    const idx = types.indexOf(currentPal.subType);
+                    if (idx > -1) {
+                        types.splice(idx, 1);
+                        if (types.length === 0) {
+                            currentPal.category = "Object";
+                            currentPal.subType = "Rock";
+                        } else {
+                            currentPal.subType = types[0];
+                        }
+                        renderPreview();
+                        overlay.querySelectorAll('.figpal-tab').forEach(t => {
+                            t.classList.toggle('active', t.dataset.tab === currentPal.category);
+                        });
+                    }
+                }
+            });
+        }
+
+        // Accessory Rotate Button Logic
+        const accRotateBtn = overlay.querySelector('#figpal-accessory-rotate');
+        if (accRotateBtn) {
+            accRotateBtn.addEventListener('click', rotateAccessoryPosition);
         }
 
         // Save Button logic - Now using component wiring
