@@ -8,8 +8,9 @@
     const FP = window.FigPal;
 
     const REGISTRY = [
-        { trigger: '/agent', description: 'Setup your AI provider (Gemini, OpenAI, etc.)', type: 'action' },
-        { trigger: '/connect', description: 'Connect agent or codebase (use with "agent" or "codebase")', type: 'action' },
+        { trigger: '/connect agent', description: 'Setup AI provider keys (Gemini, OpenAI)', type: 'action' },
+        { trigger: '/connect codebase', description: 'Link local project files', type: 'action' },
+        { trigger: '/keys', description: 'Edit AI provider API keys', type: 'action' },
         { trigger: '/vfs', description: 'Check linked codebase status', type: 'action' },
         { trigger: '/open', description: 'Read local file content', type: 'action' },
         { trigger: '/reset', description: 'Reset all settings & reload', type: 'action' },
@@ -23,8 +24,9 @@
         { trigger: '/export', description: 'Export learned skills to JSON', type: 'action' },
         { trigger: '/import', description: 'Import skills from JSON', type: 'action' },
         { trigger: '/help', description: 'Show available commands', type: 'action' },
-        { trigger: '/commands', description: 'List all commands (alias for /help)', type: 'action' },
-        { trigger: '/plugin', description: 'Show Bridge instructions', type: 'action' }
+        { trigger: '/plugin', description: 'Show Bridge instructions', type: 'action' },
+        { trigger: '/create', description: 'Generate Figma elements (AI)', type: 'action' },
+        { trigger: '/exec', description: 'Execute Figma API code', type: 'action' }
     ];
 
     let overlay = null;
@@ -57,23 +59,34 @@
 
     function handleInput(e) {
         const text = e.target.value;
-        if (!text.startsWith('/') || text.includes(' ')) {
+
+        // Only trigger if getting started with a slash
+        if (!text.startsWith('/')) {
             hide();
             return;
         }
 
         const lower = text.toLowerCase();
-        filteredCommands = REGISTRY.filter(cmd => cmd.trigger.startsWith(lower));
+
+        // improved matching: match if command starts with input OR input starts with command (for arguments)
+        filteredCommands = REGISTRY.filter(cmd => {
+            const cmdLower = cmd.trigger.toLowerCase();
+            // 1. User is typing command: "/conn" -> matches "/connect"
+            if (cmdLower.startsWith(lower)) return true;
+            // 2. User has typed command and is typing args: "/connect ag" -> matches "/connect"
+            if (lower.startsWith(cmdLower + ' ')) return true;
+            return false;
+        });
+
+        // Hide if exact match with space (user is typing args, but we don't have arg suggestions yet)
+        // Unless we want to keep showing the command help? Let's keep showing it for context.
 
         if (filteredCommands.length > 0) {
             activeIndex = 0;
             render();
             show();
         } else {
-            // Show "No matches" if we're still typing a command
-            activeIndex = -1;
-            renderNoMatches();
-            show();
+            hide();
         }
     }
 
@@ -96,12 +109,12 @@
             case 'Enter':
                 e.preventDefault();
                 e.stopImmediatePropagation();
-                selectItem(activeIndex, true); // Execute immediately
+                selectItem(activeIndex);
                 return true;
             case 'Tab':
                 e.preventDefault();
                 e.stopImmediatePropagation();
-                selectItem(activeIndex, false); // Just fill the input
+                selectItem(activeIndex);
                 return true;
             case 'Escape':
                 hide();
@@ -110,25 +123,42 @@
         return false;
     }
 
-    function selectItem(index, shouldExecute = false) {
+    function selectItem(index) {
         if (!filteredCommands[index]) return;
         const cmd = filteredCommands[index];
         if (inputRef) {
-            if (shouldExecute) {
-                // When Enter is pressed, execute the command immediately
-                inputRef.value = '';
-                hide();
-                // Trigger the command through the flow
-                if (window.FigPal && window.FigPal.flow) {
-                    window.FigPal.flow.handleUserMessage(cmd.trigger);
+            // Check if input already has this command
+            const currentVal = inputRef.value;
+
+            // If we are just completing the command part
+            if (!currentVal.startsWith(cmd.trigger + ' ')) {
+                // Optimization: If exact match, execute immediately (assumes user would type space if they wanted args)
+                if (currentVal === cmd.trigger || currentVal === cmd.trigger + ' ') {
+                    hide();
+                    console.log('ANTIGRAVITY: Executing exact match command:', cmd.trigger);
+                    inputRef.value = '';
+                    if (FP.flow && FP.flow.handleUserMessage) {
+                        FP.flow.handleUserMessage(cmd.trigger);
+                    }
+                    return;
                 }
-            } else {
-                // When clicked or Tab is pressed, just fill the input
-                inputRef.value = cmd.trigger + ' ';
+
+                inputRef.value = cmd.trigger + ' '; // Append space for args
                 inputRef.focus();
-                // Dispatch input event to notify any listeners
+                // Dispatch input event to notify any listeners / trigger resize
                 inputRef.dispatchEvent(new Event('input', { bubbles: true }));
+
+                // Keep showing if it accepts args? For now hide to let user type.
                 hide();
+            } else {
+                // Already typed/has args, execute what's there!
+                hide();
+                const textToExecute = currentVal.trim();
+                inputRef.value = '';
+
+                if (FP.flow && FP.flow.handleUserMessage) {
+                    FP.flow.handleUserMessage(textToExecute);
+                }
             }
         }
     }

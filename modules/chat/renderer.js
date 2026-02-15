@@ -333,5 +333,6 @@
     FP.chat.parseMarkdown = parseMarkdown;
     FP.chat.addMessage = addMessage;
     FP.chat.bindActions = bindActions;
+    FP.chat.typeText = typeText;
     FP.chat.ICONS = ICONS;
 })();

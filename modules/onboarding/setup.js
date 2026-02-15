@@ -7,6 +7,23 @@
 
     const FP = window.FigPal;
 
+
+
+    // Defensive: Ensure utils exist even if module failed to load
+    FP.utils = FP.utils || {};
+    if (!FP.utils.escapeHTML) {
+        console.warn('FigPal: FP.utils.escapeHTML missing, using fallback.');
+        FP.utils.escapeHTML = (str) => {
+            if (!str) return '';
+            return String(str)
+                .replace(/&/g, "&amp;")
+                .replace(/</g, "&lt;")
+                .replace(/>/g, "&gt;")
+                .replace(/"/g, "&quot;")
+                .replace(/'/g, "&#039;");
+        };
+    }
+
     const ICONS = {
         edit: `<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>`,
         delete: `<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2M10 11v6M14 11v6"/></svg>`,
@@ -15,9 +32,13 @@
 
     // ─── Provider Options ────────────────────────────────────────────────
     function getProviderOptions() {
+        if (!FP.ai || !FP.ai.PROVIDERS) {
+            console.error('FigPal Setup: FP.ai or PROVIDERS missing', FP.ai);
+            return [{ value: 'error', label: 'Error: Module Loading...' }];
+        }
         return Object.keys(FP.ai.PROVIDERS).map(key => ({
             value: key,
-            label: FP.ai.PROVIDERS[key].name,
+            label: FP.ai.PROVIDERS[key].name || key,
         }));
     }
 
@@ -31,73 +52,109 @@
         const setupContent = `
             <div class="figpal-setup">
                 <style>
-                    .figpal-setup { font-family: Inter, sans-serif; color: #fff; }
-                    .figpal-setup h3 { margin: 0 0 8px; font-size: 16px; font-weight: 700; color: #7B61FF; }
-                    .figpal-setup p { margin: 0 0 16px; font-size: 12px; opacity: 0.8; line-height: 1.4; }
+                    .figpal-setup { font-family: Inter, sans-serif; color: #1e1e1e; }
+                    .figpal-setup h3 { margin: 0 0 4px; font-size: 14px; font-weight: 600; color: #0D99FF; display: flex; align-items: center; gap: 6px; }
+                    .figpal-setup p { margin: 0 0 12px; font-size: 11px; color: #666; line-height: 1.3; }
+                    
+                    /* Compact Form Elements */
                     .figpal-setup-select, .figpal-setup-input { 
-                        width: 100%; height: 32px; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); 
-                        border-radius: 6px; color: #fff; padding: 0 8px; font-size: 12px; margin-top: 4px;
-                        transition: border-color 0.2s;
+                        width: 100%; height: 28px; 
+                        background: #fff; border: 1px solid #e5e5e5; 
+                        border-radius: 4px; color: #1e1e1e; padding: 0 8px; 
+                        font-size: 11px; margin-top: 2px;
+                        transition: border-color 0.2s, box-shadow 0.2s;
                     }
-                    .figpal-setup-select:focus, .figpal-setup-input:focus { border-color: #7B61FF; outline: none; }
-                    .figpal-setup label { font-size: 10px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; opacity: 0.5; }
+                    .figpal-setup-select:focus, .figpal-setup-input:focus { 
+                        border-color: #0D99FF; box-shadow: 0 0 0 1px #0D99FF; outline: none; 
+                    }
+                    
+                    .figpal-setup label { 
+                        font-size: 10px; font-weight: 600; text-transform: uppercase; 
+                        letter-spacing: 0.05em; color: #888; 
+                    }
+                    
+                    /* Primary Button */
                     .figpal-setup-btn {
-                        width: 100%; height: 32px; background: #7B61FF; border: none; border-radius: 6px; 
-                        color: #fff; font-size: 12px; font-weight: 600; cursor: pointer; margin-top: 12px;
-                        transition: filter 0.2s, transform 0.1s;
+                        width: 100%; height: 28px; background: #0D99FF; border: none; border-radius: 4px; 
+                        color: #fff; font-size: 11px; font-weight: 500; cursor: pointer; margin-top: 8px;
+                        transition: background 0.2s;
                     }
-                    .figpal-setup-btn:hover { filter: brightness(1.1); }
-                    .figpal-setup-btn:active { transform: scale(0.98); }
-                    .figpal-setup-btn:disabled { opacity: 0.5; cursor: not-allowed; }
-                    .figpal-key-list { margin-top: 16px; border-top: 1px solid rgba(255,255,255,0.1); padding-top: 12px; }
-                </style>
-                <h3>👋 API Connection</h3>
-                <p>Connect multiple API keys with custom aliases for easy identification.</p>
+                    .figpal-setup-btn:hover { background: #007be5; }
+                    .figpal-setup-btn:disabled { opacity: 0.6; cursor: not-allowed; }
+                    
+                    /* Key List Area */
+                    .figpal-key-list { margin-top: 12px; border-top: 1px solid #f0f0f0; padding-top: 8px; }
+                    
+                    /* Add Section */
+                    .figpal-setup-add-section { 
+                        margin-top: 12px; background: #f9f9f9; padding: 10px; border-radius: 6px; border: 1px solid #eee; 
+                    }
 
-                <div style="margin-bottom: 12px;">
-                    <label>AI Provider</label>
+                    /* Dark Mode Support (injected by higher level, but keeping basic support here in case) */
+                    @media (prefers-color-scheme: dark) {
+                        .figpal-setup { color: #fff; }
+                        .figpal-setup p { color: #aaa; }
+                        .figpal-setup-select, .figpal-setup-input { background: #2c2c2c; border-color: #444; color: #fff; }
+                        .figpal-setup-add-section { background: #2c2c2c; border-color: #333; }
+                        .figpal-key-list { border-color: #333; }
+                    }
+                </style>
+                
+                <h3>👋 API Connection</h3>
+                <p>Connect your API keys. Keys work for all models.</p>
+
+                <div style="margin-bottom: 8px;">
+                    <label>Provider</label>
                     <select id="figpal-setup-provider" class="figpal-setup-select">
                         ${providerOptionsHtml}
                     </select>
                 </div>
 
-                <div style="margin-bottom: 12px;">
-                    <label>AI Model</label>
-                    <select id="figpal-setup-model" class="figpal-setup-select">
-                        <!-- Models will be injected here -->
-                    </select>
-                </div>
+                <!-- Model selection removed as keys are universal -->
 
                 <div class="figpal-key-list">
                     <!-- Keys will be injected here -->
                 </div>
 
-                <div class="figpal-setup-add-section" style="margin-top: 16px; background: rgba(255,255,255,0.03); padding: 12px; border-radius: 8px;">
+                <div class="figpal-setup-add-section">
                     <label>Add New Key</label>
-                    <div style="display:flex; flex-direction:column; gap:8px;">
+                    <div style="display:flex; flex-direction:column; gap:6px;">
                         <input type="password" id="figpal-setup-key" placeholder="Paste API key" class="figpal-setup-input" />
-                        <div style="display:flex; gap:8px;">
-                            <input type="text" id="figpal-setup-alias" placeholder="Alias (e.g. Work, Personal)" class="figpal-setup-input" style="flex:1;" />
-                            <button id="figpal-setup-save" class="figpal-setup-btn" style="width: auto; padding: 0 16px; margin-top: 4px;">Add ✨</button>
+                        <div style="display:flex; gap:6px;">
+                            <input type="text" id="figpal-setup-alias" placeholder="Alias (Optional)" class="figpal-setup-input" style="flex:1;" />
+                            <button id="figpal-setup-save" class="figpal-setup-btn" style="width: auto; padding: 0 12px; margin-top: 2px;">Add</button>
                         </div>
                     </div>
                 </div>
             </div>
+
         `;
 
         const { msgDiv } = FP.chat.addMessage('', 'bot', false, true);
         if (!msgDiv) return;
 
-        // Sequence is critical: type content, then bind listeners
-        FP.chat.typeText(msgDiv, setupContent, 30, () => {
+        // Render immediately (no typing animation for forms)
+        msgDiv.innerHTML = setupContent;
+
+        // Execute immediately
+        (function () {
             const providerSelect = msgDiv.querySelector('#figpal-setup-provider');
-            const modelSelect = msgDiv.querySelector('#figpal-setup-model');
             const keyInput = msgDiv.querySelector('#figpal-setup-key');
             const aliasInput = msgDiv.querySelector('#figpal-setup-alias');
             const saveBtn = msgDiv.querySelector('#figpal-setup-save');
 
+            if (!providerSelect || !keyInput || !aliasInput || !saveBtn) {
+                console.error('FigPal Setup: One or more elements missing from setupContent', {
+                    providerSelect: !!providerSelect,
+                    keyInput: !!keyInput,
+                    aliasInput: !!aliasInput,
+                    saveBtn: !!saveBtn
+                });
+                return;
+            }
+
             // 1. Suppression: prevent Figma from stealing shortcuts/paste
-            [providerSelect, modelSelect, keyInput, aliasInput].forEach(el => {
+            [keyInput, aliasInput].forEach(el => {
                 if (!el) return;
                 el.addEventListener('keydown', (e) => {
                     // ALWAYS stop propagation for our input to prevent Figma from seeing these keys.
@@ -110,24 +167,18 @@
             });
 
             // 2. Initial render
-            renderModels(msgDiv, providerSelect.value);
             renderKeys(msgDiv, providerSelect.value);
 
             // 3. Events
             providerSelect.addEventListener('change', () => {
-                renderModels(msgDiv, providerSelect.value);
                 renderKeys(msgDiv, providerSelect.value);
             });
 
-            modelSelect.addEventListener('change', () => {
-                FP.state.selectedModel = modelSelect.value;
-                chrome.storage.sync.set({ selectedModel: modelSelect.value });
-            });
+
 
             if (saveBtn) {
                 saveBtn.addEventListener('click', async () => {
                     const provider = providerSelect.value;
-                    const model = modelSelect.value;
                     const key = keyInput.value.trim();
                     const alias = aliasInput.value.trim() || `Key ${Date.now().toString().slice(-4)}`;
 
@@ -160,7 +211,7 @@
                         apiKeys[provider] = keysArr;
                         FP.state.apiKeys = apiKeys;
 
-                        await new Promise(r => chrome.storage.sync.set({ apiKeys, provider, selectedModel: model }, r));
+                        await new Promise(r => chrome.storage.sync.set({ apiKeys, provider }, r));
 
                         keyInput.value = '';
                         aliasInput.value = '';
@@ -181,20 +232,10 @@
                     }
                 });
             }
-        });
+        })();
     }
 
-    function renderModels(container, provider) {
-        const modelSelect = container.querySelector('#figpal-setup-model');
-        if (!modelSelect) return;
 
-        const cfg = FP.ai.PROVIDERS[provider];
-        if (!cfg) return;
-
-        modelSelect.innerHTML = cfg.models.map(m =>
-            `<option value="${m}" ${m === FP.state.selectedModel ? 'selected' : ''}>${m}</option>`
-        ).join('');
-    }
 
     function renderKeys(container, provider) {
         const keyList = container.querySelector('.figpal-key-list');
@@ -219,22 +260,34 @@
                 return;
             }
 
+            // Using styles defined in showSetupPrompt ("figpal-setup" scope)
+            // Background: #f9f9f9 (light gray for items)
+            // Text: #1e1e1e (dark gray)
+            // Border: #eee
+            // Icons: #666 (default), #0D99FF (save), #ff4444 (delete)
+
             keyList.innerHTML = '<label>Active Keys</label>' + keys.map((k, i) => `
-                <div class="figpal-key-item" data-index="${i}" style="display:flex; align-items:center; justify-content:space-between; background:rgba(255,255,255,0.05); padding:6px 10px; border-radius:6px; margin-top:6px; border:1px solid rgba(255,255,255,0.1);">
-                    <div class="figpal-key-info">
+                <div class="figpal-key-item" data-index="${i}" style="display:flex; align-items:center; justify-content:space-between; background:#f9f9f9; padding:6px 10px; border-radius:4px; margin-top:6px; border:1px solid #eee;">
+                    <div class="figpal-key-info" style="flex:1; margin-right:8px; overflow:hidden;">
                         <div class="info-view" style="display:flex; flex-direction:column;">
-                            <span class="view-alias" style="font-size:10px; font-weight:600; color:#fff;">${FP.utils.escapeHTML(k.alias)}</span>
-                            <span style="font-size:9px; color:#888; font-family:monospace;">••••${FP.utils.escapeHTML(k.key.slice(-4))}</span>
+                            <span class="view-alias" style="font-size:11px; font-weight:600; color:#1e1e1e; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${FP.utils.escapeHTML(k.alias)}</span>
+                            <span style="font-size:10px; color:#888; font-family:monospace;">••••${FP.utils.escapeHTML(k.key.slice(-4))}</span>
                         </div>
                         <div class="edit-view" style="display:none; flex-direction:column; gap:4px;">
-                            <input type="text" class="edit-alias-input" value="${FP.utils.escapeHTML(k.alias)}" style="font-size:10px; background:#1e1e1e; border:1px solid #444; color:#fff; padding:2px 4px; border-radius:4px;" />
-                            <input type="password" class="edit-key-input" value="${FP.utils.escapeHTML(k.key)}" style="font-size:10px; background:#1e1e1e; border:1px solid #444; color:#fff; padding:2px 4px; border-radius:4px;" />
+                            <input type="text" class="edit-alias-input" value="${FP.utils.escapeHTML(k.alias)}" style="font-size:11px; background:#fff; border:1px solid #e5e5e5; color:#1e1e1e; padding:2px 6px; border-radius:3px;" />
+                            <input type="password" class="edit-key-input" value="${FP.utils.escapeHTML(k.key)}" style="font-size:11px; background:#fff; border:1px solid #e5e5e5; color:#1e1e1e; padding:2px 6px; border-radius:3px;" />
                         </div>
                     </div>
-                    <div style="display:flex; gap:4px;">
-                        <button class="edit-btn" style="background:none; border:none; color:#888; cursor:pointer; padding:4px;">${ICONS.edit}</button>
-                        <button class="save-btn" style="display:none; background:none; border:none; color:#7B61FF; cursor:pointer; padding:4px;">${ICONS.check}</button>
-                        <button class="delete-btn" style="background:none; border:none; color:#ff4444; cursor:pointer; padding:4px;">${ICONS.delete}</button>
+                    <div style="display:flex; gap:2px; flex-shrink:0;">
+                        <button class="edit-btn" style="background:none; border:none; color:#888; cursor:pointer; padding:4px; border-radius:3px; transition:background 0.2s;">
+                            ${ICONS.edit || '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>'}
+                        </button>
+                        <button class="save-btn" style="display:none; background:none; border:none; color:#0D99FF; cursor:pointer; padding:4px; border-radius:3px; transition:background 0.2s;">
+                            ${ICONS.check || '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"></polyline></svg>'}
+                        </button>
+                        <button class="delete-btn" style="background:none; border:none; color:#ff4444; cursor:pointer; padding:4px; border-radius:3px; transition:background 0.2s;">
+                            ${ICONS.delete || '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>'}
+                        </button>
                     </div>
                 </div>
             `).join('');
@@ -258,6 +311,12 @@
                     });
                     inp.addEventListener('paste', (e) => e.stopPropagation());
                     inp.addEventListener('contextmenu', (e) => e.stopPropagation());
+                });
+
+                // Add hover effect for buttons
+                [editBtn, saveBtn, deleteBtn].forEach(btn => {
+                    btn.onmouseenter = () => btn.style.background = 'rgba(0,0,0,0.05)';
+                    btn.onmouseleave = () => btn.style.background = 'none';
                 });
 
                 editBtn.onclick = () => {

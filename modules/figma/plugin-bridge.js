@@ -9,6 +9,7 @@
         pluginWindow: null, // Store reference to talk back
         pendingRequests: new Map(),
         lastHeartbeat: 0,
+        lastScanTime: 0,
         requestId: 0,
 
         init() {
@@ -41,13 +42,20 @@
                     console.log('FigPal Bridge: Plugin signaled ready.');
                     this.sendHandshake();
                     FP.emit('plugin-status', { connected: true });
-                } else if (msg.type === 'response') {
-                    const resolve = this.pendingRequests.get(msg.id);
+                } else if (msg.type === 'response' || msg.type === 'EXECUTE_CODE_RESULT') {
+                    // Match request ID (plugin uses requestId, we used to use id)
+                    const reqId = msg.requestId || msg.id;
+                    const resolve = this.pendingRequests.get(reqId);
                     if (resolve) {
-                        resolve(msg.data);
-                        this.pendingRequests.delete(msg.id);
+                        if (msg.type === 'EXECUTE_CODE_RESULT') {
+                            resolve(msg.success ? { success: true, result: msg.result, analysis: msg.resultAnalysis } : { success: false, error: msg.error });
+                        } else {
+                            resolve(msg.data);
+                        }
+                        this.pendingRequests.delete(reqId);
                     }
                 } else if (msg.type === 'selection-changed') {
+                    // ... (rest is same)
                     const selectionData = msg.data;
                     const nodes = selectionData.nodes || (Array.isArray(selectionData) ? selectionData : []);
                     FP.state.pluginSelection = nodes;
@@ -69,9 +77,10 @@
                     FP.emit('auth-success');
                 } else if (msg.type === 'CONSOLE_CAPTURE') {
                     // Forward plugin console to extension console for debugging
-                    const { level, message, args, timestamp } = msg;
-                    const prefix = `[Figma Plugin ${level.toUpperCase()}]`;
-                    console[level](prefix, message, ...args);
+                    const { level = 'log', message, args = [], timestamp } = msg;
+                    const safeLevel = (typeof console[level] === 'function') ? level : 'log';
+                    const prefix = `[Figma Plugin ${safeLevel.toUpperCase()}]`;
+                    console[safeLevel](prefix, message, ...args);
                     FP.emit('plugin-console', msg);
                 } else if (msg.type === 'VARIABLES_DATA') {
                     console.log('FigPal Bridge: Received Design Tokens (variables)');
@@ -79,26 +88,27 @@
                     FP.emit('tokens-updated', msg.data);
 
                     // Resolve any pending request
-                    if (msg.id && this.pendingRequests.has(msg.id)) {
-                        this.pendingRequests.get(msg.id)(msg.data);
-                        this.pendingRequests.delete(msg.id);
-                    }
-                } else if (msg.type === 'EXECUTE_CODE_RESULT') {
-                    const resolve = this.pendingRequests.get(msg.id);
-                    if (resolve) {
-                        resolve(msg.success ? { success: true, result: msg.result } : { success: false, error: msg.error });
-                        this.pendingRequests.delete(msg.id);
+                    const reqId = msg.requestId || msg.id;
+                    if (reqId && this.pendingRequests.has(reqId)) {
+                        this.pendingRequests.get(reqId)(msg.data);
+                        this.pendingRequests.delete(reqId);
                     }
                 }
             });
+
+            // ... (init loop remains same)
 
             // Proactive handshake attempt & Heartbeat check
             setInterval(() => {
                 const now = Date.now();
 
                 // 1. Handshake if not connected
+                // Throttle the heavy DOM scan to every 5s if disconnected
                 if (!this.isConnected) {
-                    this.sendHandshake();
+                    if (now - this.lastScanTime > 5000) {
+                        this.sendHandshake();
+                        this.lastScanTime = now;
+                    }
                 }
 
                 // 2. Heartbeat Check
@@ -114,7 +124,7 @@
                 if (this.isConnected) {
                     this.sendToPlugin({ source: 'figpal-extension', type: 'ping' });
                 }
-            }, 2000); // Run every 2s
+            }, 1000); // Check faster (1s) for responsive status, but throttle scan
 
             console.log('FigPal: Plugin bridge initialized.');
         },
@@ -134,6 +144,8 @@
             }
 
             // Priority 2: Deep search for all iframes (Figma scrolls/nests iframes)
+            // Throttle this scan if possible, but here we just execute.
+            // The throttling happens in the init loop.
             const allIframes = this.findAllIframes(document);
             allIframes.forEach(iframe => {
                 try { iframe.contentWindow.postMessage(msg, '*'); } catch (e) { }
@@ -167,16 +179,17 @@
         },
 
         request(type, data = {}) {
-            const id = ++this.requestId;
+            const requestId = ++this.requestId;
             return new Promise((resolve) => {
-                this.pendingRequests.set(id, resolve);
+                this.pendingRequests.set(requestId, resolve);
 
-                this.sendToPlugin({ source: 'figpal-extension', type, id, data });
+                // Send 'requestId' to match MCP plugin expectations
+                this.sendToPlugin({ source: 'figpal-extension', type, requestId, id: requestId, data });
 
                 setTimeout(() => {
-                    if (this.pendingRequests.has(id)) {
-                        this.pendingRequests.delete(id);
-                        resolve({ error: 'Request timed out' }); // Return error object instead of null for better debugging
+                    if (this.pendingRequests.has(requestId)) {
+                        this.pendingRequests.delete(requestId);
+                        resolve({ error: 'Request timed out' });
                     }
                 }, 30000); // 30s timeout for AI/Image ops
             });
@@ -197,6 +210,11 @@
             return this.request('update-node', { nodeId, updates });
         },
 
+        async createChild(parentId, nodeType, properties = {}) {
+            if (!this.isConnected) return { success: false, error: 'Plugin not connected' };
+            return this.request('CREATE_CHILD_NODE', { parentId, nodeType, properties });
+        },
+
         sendCredentials(credentials) {
             // credentials: { apiKey, provider, model }
             this.sendToPlugin({
@@ -208,20 +226,21 @@
 
         async execute(code, timeout = 5000) {
             if (!this.isConnected) return { success: false, error: 'Plugin not connected' };
-            const id = ++this.requestId;
+            const requestId = ++this.requestId;
             return new Promise((resolve) => {
-                this.pendingRequests.set(id, resolve);
+                this.pendingRequests.set(requestId, resolve);
                 this.sendToPlugin({
                     source: 'figpal-extension',
                     type: 'EXECUTE_CODE',
-                    id,
+                    requestId,   // Important: standard used by MCP plugin
+                    id: requestId, // Legacy fallback
                     code,
                     timeout
                 });
 
                 setTimeout(() => {
-                    if (this.pendingRequests.has(id)) {
-                        this.pendingRequests.delete(id);
+                    if (this.pendingRequests.has(requestId)) {
+                        this.pendingRequests.delete(requestId);
                         resolve({ success: false, error: 'Execution timed out' });
                     }
                 }, timeout + 500);

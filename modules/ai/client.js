@@ -10,7 +10,7 @@
     const PROVIDERS = {
         gemini: {
             name: 'Gemini',
-            models: ['gemini-2.5-flash', 'gemini-2.0-flash', 'gemini-pro'],
+            models: ['gemini-2.0-flash', 'gemini-1.5-flash', 'gemini-1.5-pro'],
             endpoint: (model) =>
                 `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`,
             headers: (key) => ({
@@ -20,23 +20,27 @@
             buildBody: (prompt, model, tools) => {
                 const body = {
                     contents: [{ parts: [{ text: prompt }] }],
+                    tools: []
                 };
-                if (tools && tools.length > 0) {
-                    body.tools = [
-                        {
-                            functionDeclarations: tools.map(t => ({
-                                name: t.name,
-                                description: t.description,
-                                parameters: t.parameters
-                            }))
-                        },
-                        { googleSearchRetrieval: {} }
-                    ];
-                } else {
-                    // Always enable search if no other tools, or just always enable it?
-                    // For now, let's enable it if tools are present (which is always true due to AVAILABLE_TOOLS)
-                    body.tools = [{ googleSearchRetrieval: {} }];
+
+                // Add Google Search Grounding (Native)
+                // Only enable if search tools are requested OR prompt explicitly says "search the web"
+                const isExplicitSearch = /search the web/i.test(prompt);
+                if (isExplicitSearch || (tools && tools.some(t => t.name && t.name.startsWith('search')))) {
+                    body.tools.push({ google_search: {} });
                 }
+
+                // Add Function Declarations (Custom Tools)
+                if (tools && tools.length > 0) {
+                    body.tools.push({
+                        function_declarations: tools.map(t => ({
+                            name: t.name,
+                            description: t.description,
+                            parameters: t.parameters
+                        }))
+                    });
+                }
+
                 return body;
             },
             parseResponse: (data) => {
@@ -300,34 +304,19 @@
         if (!cfg) return 'Unknown AI provider: ' + provider;
         if (!apiKeys || apiKeys.length === 0) return `Please set your API key for **${cfg.name}** via \`/connect\`. ⚙️`;
 
-        // ─── PLUGIN BRAIN PATH ───────────────────────────────────────────────
-        if (typeof prompt === 'object' && prompt.isConnected) {
-            console.log('FigPal AI: Routing to Plugin Brain 🧠');
-            try {
-                const payload = {
-                    ...prompt,
-                    provider: provider,
-                    model: selectedModel || cfg.models[0],
-                    apiKey: apiKeys[0] // Just use first key for plugin for now
-                };
-
-                const result = await FP.pluginBridge.request('ai-request', payload);
-                if (result.error) throw new Error(result.error);
-                return result.text || "No text returned from Brain.";
-            } catch (e) {
-                console.error('FigPal AI: Plugin Brain failed', e);
-                return `Plugin Brain Error: ${e.message}`;
-            }
-        }
-
-        // ─── LEGACY FETCH PATH ───────────────────────────────────────────────
+        // ─── AI REQUEST PATH ───────────────────────────────────────────────
         if (FP.state.currentController) FP.state.currentController.abort();
         FP.state.currentController = new AbortController();
         const signal = FP.state.currentController.signal;
         const model = selectedModel || cfg.models[0];
 
-        // Rotation Loop
-        for (let i = 0; i < apiKeys.length; i++) {
+        // Persistent Rotation: Start from the last successful key (or next one)
+        FP.state.lastKeyIndex = FP.state.lastKeyIndex || {};
+        const startIndex = FP.state.lastKeyIndex[provider] || 0;
+
+        // Rotation Loop (starting from startIndex)
+        for (let j = 0; j < apiKeys.length; j++) {
+            const i = (startIndex + j) % apiKeys.length;
             const currentKeyEntry = apiKeys[i];
             const apiKey = typeof currentKeyEntry === 'object' ? currentKeyEntry.key : currentKeyEntry;
             const alias = typeof currentKeyEntry === 'object' ? currentKeyEntry.alias : null;
@@ -354,10 +343,10 @@
 
                     if (response.status === 429) {
                         console.warn(`FigPal AI: Key ${i + 1} (${maskedKey}) hit quota (429). Rotating...`);
-                        if (i < apiKeys.length - 1) {
+                        if (j < apiKeys.length - 1) {
                             break; // Break tool loop, continue key loop
                         } else {
-                            return `⚠️ **All keys exhausted.**\n\nYour ${apiKeys.length} key(s) for ${cfg.name} have all hit their rate limits. Please add more keys or wait a few minutes.`;
+                            return `⚠️ **All keys exhausted.**\n\n- Current Provider: **${cfg.name}**\n- Keys Configured: ${apiKeys.length}\n\n**Common Troubleshooting:**\n- If your keys are from the same Google Cloud Project, they share the same rate limit.\n- Free Tier Gemini models have strict request-per-minute limits.\n- Please wait 60 seconds or add a key from a different project.`;
                         }
                     }
 
@@ -367,6 +356,9 @@
                     }
 
                     const data = await response.json();
+
+                    // Success! Record this key as the successful one
+                    FP.state.lastKeyIndex[provider] = i;
                     const result = cfg.parseResponse(data);
 
                     if (typeof result === 'string') {
@@ -400,17 +392,19 @@
                             currentPrompt += `\n\nTOOL_RESPONSE: Recent Plugin Logs:\n${logs}`;
                             continue;
                         } else if (name === 'search_web') {
+                            // If search grounding is active (Gemini), the model already has access to web data.
+                            // If not, we trigger the search module but also allow the AI to continue.
                             if (FP.search) {
                                 FP.search.search(args.query);
-                                return "Search initiated. Results will appear in chat shortly.";
                             }
-                            return "Search module not available.";
+                            currentPrompt += `\n\nTOOL_RESPONSE: Web search for "${args.query}" has been processed. Please provide the most up-to-date information available in your context or grounding session.`;
+                            continue;
                         } else if (name === 'search_docs') {
                             if (FP.search) {
                                 FP.search.docs(args.topic);
-                                return "Docs search initiated. Results will appear in chat shortly.";
                             }
-                            return "Search module not available.";
+                            currentPrompt += `\n\nTOOL_RESPONSE: Documentation search for "${args.topic}" has been processed. Please provide the best technical guidance available.`;
+                            continue;
                         } else if (name === 'manage_monitor') {
                             if (!FP.monitor) return "Monitor module not loaded.";
                             if (args.action === 'start') { FP.monitor.start(); return "Monitor started."; }

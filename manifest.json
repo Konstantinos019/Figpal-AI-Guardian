@@ -32,6 +32,7 @@
         "modules/ai/system-prompt.js",
         "modules/figma/data.js",
         "modules/figma/plugin-bridge.js",
+        "modules/core/utils.js",
         "modules/onboarding/setup.js",
         "modules/ui/components/Button.js",
         "modules/chat/commands.js",
@@ -47,7 +48,6 @@
         "modules/core/diff-engine.js",
         "modules/core/monitor.js",
         "modules/features/web-search.js",
-        "modules/core/injector.js",
         "modules/features/web-search.js",
         "modules/core/injector.js",
         "content.js"
