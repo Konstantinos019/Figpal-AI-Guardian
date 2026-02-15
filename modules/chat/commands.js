@@ -407,23 +407,27 @@
         '/capture': function () {
             try {
                 const selection = FP.state.pluginSelection || [];
+                if (selection.length === 0) {
+                    FP.chat.addMessage('⚠️ Select something first to capture it!', 'bot');
+                    return;
+                }
+
+                const firstNode = selection[0];
                 const textNode = selection.find(n => n.type === 'TEXT');
 
+                // Structured Memory: Store full JSON for reconstruction
+                FP.state.memory = {
+                    node: firstNode, // The full JSON snapshot
+                    text: textNode ? textNode.characters : null,
+                    sourceId: firstNode.id,
+                    sourceName: firstNode.name,
+                    timestamp: Date.now()
+                };
+
                 if (textNode) {
-                    FP.state.memory = {
-                        text: textNode.characters,
-                        sourceId: textNode.id,
-                        sourceName: textNode.name
-                    };
-                    FP.chat.addMessage(`🧠 **Captured!** I've remembered this text: \n\n*"${textNode.characters.substring(0, 100)}..."*\n\nMove to where you want the note and say "Place it"!`, 'bot');
-                } else if (selection.length > 0) {
-                    FP.state.memory = {
-                        text: `Audit of ${selection[0].name}`,
-                        sourceId: selection[0].id
-                    };
-                    FP.chat.addMessage(`🧠 **Context Saved.** I'm remembering [${selection[0].type}:${selection[0].name}].`, 'bot');
+                    FP.chat.addMessage(`🧠 **Captured!** I've remembered this text and its style:\n\n*"${textNode.characters.substring(0, 100)}..."*\n\nMove to where you want it and say "recreate it" or "Place it"!`, 'bot');
                 } else {
-                    FP.chat.addMessage('⚠️ Select something first to capture it!', 'bot');
+                    FP.chat.addMessage(`🧠 **Component Saved.** I'm remembering the full structure of [${firstNode.type}:${firstNode.name}].\n\nI can now "recreate" this exactly as it is elsewhere!`, 'bot');
                 }
             } catch (err) {
                 console.error('Command /capture failed:', err);
@@ -455,6 +459,20 @@
             } catch (err) {
                 console.error('Command FIX:PLACE_NOTE failed:', err);
                 FP.chat.addMessage(`❌ **Command Failed**\n${err.message}`, 'bot');
+            }
+        },
+
+        'FIX:CHAT_CMD': function (arg) {
+            try {
+                // Allows buttons to trigger slash commands
+                // Example: [Connect agent:FIX:CHAT_CMD|/connect agent]
+                if (!arg) return;
+                const cmd = arg.trim();
+                if (cmd.startsWith('/')) {
+                    tryHandle(cmd);
+                }
+            } catch (err) {
+                console.error('Command FIX:CHAT_CMD failed:', err);
             }
         },
 

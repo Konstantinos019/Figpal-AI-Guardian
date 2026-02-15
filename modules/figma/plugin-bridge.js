@@ -48,7 +48,12 @@
                     const resolve = this.pendingRequests.get(reqId);
                     if (resolve) {
                         if (msg.type === 'EXECUTE_CODE_RESULT') {
-                            resolve(msg.success ? { success: true, result: msg.result, analysis: msg.resultAnalysis } : { success: false, error: msg.error });
+                            if (msg.success) {
+                                resolve({ success: true, result: msg.result, analysis: msg.resultAnalysis });
+                            } else {
+                                console.error('FigPal Bridge: Code execution failed side-effect:', msg.error);
+                                resolve({ success: false, error: msg.error || 'Unknown plugin error during execution' });
+                            }
                         } else {
                             resolve(msg.data);
                         }

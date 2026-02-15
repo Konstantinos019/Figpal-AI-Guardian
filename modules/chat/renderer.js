@@ -33,13 +33,10 @@
                 return `<button class="figpal-action-btn" data-event="${eventName.trim()}">${btnLabel.trim()}</button>`;
             });
 
-            return `
-          <div class="figpal-action-card">
-            <div class="action-title">${title.trim()}</div>
-            <div class="action-desc">${desc.trim().replace(/\n/g, '<br>')}</div>
-            <div class="action-buttons">${buttonHtml}</div>
-          </div>
-        `;
+            const titleHtml = title.trim() ? `<div class="action-title">${title.trim()}</div>` : '';
+            const descHtml = desc.trim() ? `<div class="action-desc">${desc.trim().replace(/\n/g, '<br>')}</div>` : '';
+
+            return `<div class="figpal-action-card">${titleHtml}${descHtml}<div class="action-buttons">${buttonHtml}</div></div>`;
         });
 
         // 3. Quick Action Pills: ((Label:Event))
@@ -89,9 +86,35 @@
 
     async function handleActionEvent(e) {
         const eventName = (e.target.dataset.event || "").trim();
+        const isConfirmed = e.target.dataset.confirmed === "true";
+
+        if (!eventName) return;
+
+        // 1. Handle Confirmation Step for destructive/canvas actions
+        const destructiveActions = ['RENAME', 'CONTENT', 'FILL'];
+        const actionType = eventName.startsWith('FIX:') ? eventName.split(':')[1].split('|')[0] : eventName;
+
+        if (destructiveActions.includes(actionType) && !isConfirmed) {
+            e.target.dataset.confirmed = "true";
+            const originalText = e.target.textContent;
+            e.target.textContent = 'Confirm?';
+            e.target.classList.add('confirming');
+
+            // Reset after 3 seconds if not clicked
+            setTimeout(() => {
+                if (e.target.dataset.confirmed === "true") {
+                    e.target.dataset.confirmed = "false";
+                    e.target.textContent = originalText;
+                    e.target.classList.remove('confirming');
+                }
+            }, 3000);
+            return;
+        }
+
         console.log('FigPal Actions: Logic Start for', eventName);
 
         e.target.disabled = true;
+        const previousText = e.target.textContent;
         e.target.textContent = 'Executing...';
 
         // ─── Native Execution Logic ───
@@ -105,7 +128,6 @@
             const [type, data] = cleanEvent.split('|');
 
             // Priority 1: Check commands.js (for things like LAUNCH_BRIDGE or AUDIT or LEARN)
-            // Re-construct the command key to see if it exists (e.g. "FIX:LEARN")
             const cmdKey = `FIX:${type}`;
             if (FP.commands && FP.commands.tryHandle(cmdKey, data)) {
                 e.target.textContent = 'Triggered 🚀';
@@ -134,35 +156,56 @@
                             e.target.style.color = 'white';
                             return;
                         } else {
-                            e.target.textContent = 'Failed';
+                            e.target.textContent = result?.error || 'Failed';
                             e.target.style.background = '#EF4444';
                             e.target.style.color = 'white';
-                            return;
                         }
                     } catch (err) {
                         console.error('Action Error:', err);
-                        e.target.textContent = 'Error';
+                        e.target.textContent = 'Cmd Error';
                         e.target.style.background = '#EF4444';
                         e.target.style.color = 'white';
-                        return;
                     }
+
+                    // Revert after 3s so they can try again
+                    setTimeout(() => {
+                        e.target.textContent = previousText;
+                        e.target.disabled = false;
+                        e.target.style.background = '';
+                        e.target.style.color = '';
+                    }, 3000);
+                    return;
                 }
-            } else if (type === 'RENAME' || type === 'CONTENT' || type === 'FILL') {
+            } else if (['RENAME', 'CONTENT', 'FILL'].includes(type)) {
                 // If it's a native fix but we are missing context/bridge
-                e.target.textContent = 'No Context';
+                e.target.textContent = 'No Bridge 🔌';
                 e.target.style.background = '#F97316';
                 e.target.style.color = 'white';
+
+                setTimeout(() => {
+                    e.target.textContent = previousText;
+                    e.target.disabled = false;
+                    e.target.style.background = '';
+                    e.target.style.color = '';
+                }, 3000);
                 return;
             }
         }
 
-        // Default fallback
-        e.target.textContent = 'Sent';
-        e.target.style.opacity = '0.7';
-        FP.emit('user-message', {
-            text: `[Action Confirmed: ${eventName}]`,
-            specificResponse: `Action ${eventName} confirmed.`
-        });
+        // Default fallback (REMOVED "Sent" fake success)
+        console.warn('FigPal Actions: No handler for', eventName);
+        e.target.textContent = 'Unknown Action';
+        e.target.style.background = '#000000';
+        e.target.style.color = 'white';
+        e.target.style.border = '1px solid #EF4444';
+
+        setTimeout(() => {
+            e.target.textContent = previousText;
+            e.target.disabled = false;
+            e.target.style.background = '';
+            e.target.style.color = '';
+            e.target.style.border = '';
+        }, 3000);
     }
 
     // --- Helpers ---
@@ -185,7 +228,7 @@
     }
 
     // ─── Message Renderer ────────────────────────────────────────────────
-    function addMessage(text, sender, isThinking = false, isHtml = false) {
+    function addMessage(text, sender, isThinking = false, isHtml = false, isError = false) {
         const chatBubble = FP.state.elements.chatBubble;
         if (!chatBubble) return { row: null, msgDiv: null, avatar: null };
 
@@ -198,6 +241,15 @@
         const msgDiv = document.createElement('div');
         msgDiv.classList.add('figpal-message', sender);
         if (isThinking) msgDiv.classList.add('thinking');
+        if (isError) msgDiv.classList.add('error');
+        if (text === 'EXECUTING_TOOL') {
+            msgDiv.classList.add('thinking', 'executing');
+            msgDiv.textContent = 'Executing Action... ⚡';
+            row.appendChild(msgDiv);
+            contentArea.appendChild(row);
+            contentArea.scrollTop = contentArea.scrollHeight;
+            return { row, msgDiv };
+        }
 
         if (sender === 'bot' && !isThinking && !isHtml) {
             // Organic Typing Effect

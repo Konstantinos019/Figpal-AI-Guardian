@@ -23,11 +23,9 @@
             FP.chat.addMessage(`🔍 Searching for "**${query}**"...`, 'bot');
 
             try {
-                // We delegate the search to the AI layer
-                // The AI prompt will be constructed to request a web search
-                // and return formatted results.
+                // We delegate the search to the AI layer with an explicit trigger
                 await FP.ai.chat(
-                    `Perform a web search for: "${query}". \n` +
+                    `search the web for: "${query}". \n` +
                     `Return the top 3-5 results with titles, brief summaries, and URLs. \n` +
                     `Format the output as a Markdown list.`
                 );
@@ -51,7 +49,7 @@
 
             try {
                 await FP.ai.chat(
-                    `Find official documentation for: "${topic}". \n` +
+                    `search the web for official documentation for: "${topic}". \n` +
                     `Prioritize official sources (e.g., Figma API, React Docs, MDN). \n` +
                     `Return links to specific pages/sections.`
                 );

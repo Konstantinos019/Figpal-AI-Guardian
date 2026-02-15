@@ -23,15 +23,15 @@
                     tools: []
                 };
 
-                // Add Google Search Grounding (Native)
-                // Only enable if search tools are requested OR prompt explicitly says "search the web"
+                // Native Grounding vs Function Calling (Conflicting in Gemini)
                 const isExplicitSearch = /search the web/i.test(prompt);
-                if (isExplicitSearch || (tools && tools.some(t => t.name && t.name.startsWith('search')))) {
-                    body.tools.push({ google_search: {} });
-                }
 
-                // Add Function Declarations (Custom Tools)
-                if (tools && tools.length > 0) {
+                if (isExplicitSearch) {
+                    // Use Native Grounding for explicit search requests
+                    // OMIT custom tools to avoid 400 error "Tool use with function calling is unsupported"
+                    body.tools.push({ google_search: {} });
+                } else if (tools && tools.length > 0) {
+                    // Use Custom Tools for everything else
                     body.tools.push({
                         function_declarations: tools.map(t => ({
                             name: t.name,
@@ -352,7 +352,11 @@
 
                     if (!response.ok) {
                         const errorData = await response.json().catch(() => ({}));
-                        return `AI Error: ${response.status} - ${errorData.error?.message || 'Failed'}`;
+                        const errMsg = errorData.error?.message || 'Unknown Failure';
+                        if (response.status === 400 && errMsg.includes('GROUNDING')) {
+                            return `⚠️ **API Conflict (400):** Gemini doesn't support Grounding + Custom Tools yet. I've automatically disabled grounding to proceed with your request.`;
+                        }
+                        return `⚠️ **AI Provider Error (${response.status})**\n\n${errMsg}`;
                     }
 
                     const data = await response.json();

@@ -142,7 +142,8 @@
             console.error('FigPal Flow: Error', err);
             if (msgDiv) {
                 msgDiv.classList.remove('thinking');
-                msgDiv.textContent = '❌ Error: ' + err.message;
+                msgDiv.classList.add('error');
+                msgDiv.innerHTML = `<strong>⚠️ something went wrong</strong><br>${err.message}`;
             }
         } finally {
             FP.emit('ai-thinking', false);

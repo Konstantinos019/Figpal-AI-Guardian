@@ -440,7 +440,7 @@ body.figpal-is-docked .figpal-header-avatar {
   /* Prevents scroll chaining to parent */
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 8px;
   background: #FFFFFF;
 }
 
@@ -449,7 +449,7 @@ body.figpal-is-docked .figpal-header-avatar {
   display: flex;
   gap: 12px;
   align-items: flex-start;
-  margin-bottom: 12px;
+  margin-bottom: 8px;
 }
 
 .figpal-message-row.user {
@@ -496,6 +496,24 @@ body.figpal-is-docked .figpal-header-avatar {
   color: #888;
   font-style: italic;
   font-size: 14px;
+}
+
+/* Error Messages */
+.figpal-message.error {
+  background: #FFF5F5;
+  border: 1px solid #FECACA;
+  color: #DC2626;
+  padding: 10px 14px;
+  border-radius: 8px;
+  font-size: 13px;
+  margin: 4px 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.figpal-message.error strong {
+  color: #991B1B;
 }
 
 /* Quick Actions Container */
@@ -1148,9 +1166,7 @@ body.resizing #react-page,
   font-weight: 600;
   font-size: 13px;
   color: #000;
-  margin-bottom: 2px;
-  display: none;
-  /* Hide title if redundant */
+  margin-bottom: 4px;
 }
 
 .figpal-action-card .action-desc {
@@ -1162,9 +1178,9 @@ body.resizing #react-page,
 
 .figpal-action-card .action-buttons {
   display: flex;
-  flex-direction: row;
-  gap: 8px;
-  margin-top: 4px;
+  flex-direction: column;
+  gap: 24px;
+  margin-top: 8px;
   width: 100%;
 }
 
@@ -1195,25 +1211,23 @@ body.resizing #react-page,
 }
 
 .figpal-action-btn {
-  background: #0D99FF;
-  color: white;
-  border: none;
+  background: #F2F2F2;
+  color: #1E1E1E;
+  border: 1px solid #E5E5E5;
   padding: 10px 16px;
   border-radius: 8px;
   font-size: 13px;
-  font-weight: 600;
+  font-weight: 500;
   cursor: pointer;
   transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
   text-align: center;
   flex: 1 1 auto;
   min-width: 100px;
-  box-shadow: 0 2px 4px rgba(13, 153, 255, 0.2);
 }
 
 .figpal-action-btn:hover {
-  background: #007BE5;
-  transform: translateY(-1px);
-  box-shadow: 0 4px 8px rgba(13, 153, 255, 0.3);
+  background: #E8E8E8;
+  border-color: #D6D6D6;
 }
 
 .figpal-action-btn:active {
