@@ -38,10 +38,15 @@
                 FP.state.isFollowing = false;
                 FP.state.isReturningHome = false;
             } else {
-                // If chat closed: toggle following
-                FP.state.isFollowing = !FP.state.isFollowing;
+                // If chat closed: OPEN CHAT (Stop following)
+                container.classList.add('chat-visible');
+                FP.state.isFollowing = false;
                 FP.state.isReturningHome = false;
                 container.classList.remove('resting');
+
+                // Focus input
+                const input = container.querySelector('input');
+                if (input) setTimeout(() => input.focus(), 50);
             }
         });
 

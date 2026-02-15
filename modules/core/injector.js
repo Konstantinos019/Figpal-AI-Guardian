@@ -278,6 +278,19 @@
         home.appendChild(mid);
         home.appendChild(right);
 
+        // Signpost Click: Send Pal Home
+        home.addEventListener('click', (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            console.log('FigPal: Signpost clicked -> Going Home');
+
+            FP.state.isFollowing = false;
+            FP.state.isReturningHome = true;
+
+            container.classList.remove('chat-visible');
+            // Allow physics loop to handle the move
+        });
+
         // Follower character (Layered container)
         const follower = document.createElement('div');
         follower.id = 'figpal-follower';
