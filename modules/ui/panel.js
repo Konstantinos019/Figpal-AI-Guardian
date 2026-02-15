@@ -269,18 +269,19 @@
                         }
                     }
                     if (dotsContainer) dotsContainer.style.display = 'none';
-                    if (customActions) customActions.style.display = 'none'; // No actions for "Upload" placeholder
+                    if (customActions) customActions.style.display = 'none';
 
-                    // Hide stage and arrows for Upload
                     if (stageDisc) stageDisc.style.display = 'none';
-                    overlay.querySelectorAll('.figpal-nav-overlay').forEach(el => el.style.display = 'none');
+                    // Hide ONLY accessory arrows, keep object/subtype arrows for navigation
+                    overlay.querySelectorAll('.figpal-nav-btn[data-action^="accessory"]').forEach(btn => btn.style.display = 'none');
+                    overlay.querySelectorAll('.figpal-nav-btn[data-action^="object"]').forEach(btn => btn.style.display = 'flex');
                 } else {
                     if (dotsContainer) dotsContainer.style.display = 'none';
-                    if (customActions) customActions.style.display = 'flex'; // Use flex to match CSS
+                    if (customActions) customActions.style.display = 'flex';
 
                     // Show stage and arrows for actual bots
                     if (stageDisc) stageDisc.style.display = 'block';
-                    overlay.querySelectorAll('.figpal-nav-overlay').forEach(el => el.style.display = 'flex');
+                    overlay.querySelectorAll('.figpal-nav-btn').forEach(btn => btn.style.display = 'flex');
                 }
             } else {
                 if (dotsContainer) dotsContainer.style.display = 'flex';
@@ -288,7 +289,7 @@
 
                 // Show stage and arrows for normal categories
                 if (stageDisc) stageDisc.style.display = 'block';
-                overlay.querySelectorAll('.figpal-nav-overlay').forEach(el => el.style.display = 'flex');
+                overlay.querySelectorAll('.figpal-nav-btn').forEach(btn => btn.style.display = 'flex');
             }
         };
 
@@ -491,14 +492,18 @@
         const deleteBtn = overlay.querySelector('#figpal-delete-custom');
         if (deleteBtn) {
             deleteBtn.addEventListener('click', () => {
-                if (confirm(`Are you sure you want to remove ${currentPal.subType} from your list?`)) {
+                const subType = currentPal.subType;
+                if (!subType || subType === 'Upload') return;
+
+                console.log(`FigPal: Attempting to delete ${subType}`);
+                if (confirm(`Remove ${subType} from your list?`)) {
                     const types = subTypeRegistry["Custom"];
-                    const idx = types.indexOf(currentPal.subType);
+                    const idx = types.indexOf(subType);
+
                     if (idx > -1) {
-                        const subtypeToRemove = currentPal.subType;
                         types.splice(idx, 1);
-                        delete customSprites[subtypeToRemove];
-                        delete customConfigs[subtypeToRemove];
+                        delete customSprites[subType];
+                        delete customConfigs[subType];
 
                         // Persistence
                         chrome.storage.local.set({
@@ -507,16 +512,20 @@
                             customConfigs: customConfigs
                         });
 
+                        // Logic to pick next available or fallback
                         if (types.length === 0 || (types.length === 1 && types[0] === "Upload")) {
                             currentPal.category = "Object";
                             currentPal.subType = "Rock";
                         } else {
                             currentPal.subType = types[0] === "Upload" ? types[1] : types[0];
                         }
+
                         renderPreview();
-                        overlay.querySelectorAll('.figpal-tab').forEach(t => {
-                            t.classList.toggle('active', t.dataset.tab === currentPal.category);
-                        });
+
+                        // Force re-render of follower
+                        if (FP.injector && FP.injector.reRenderFollower) {
+                            FP.injector.reRenderFollower();
+                        }
                     }
                 }
             });
