@@ -21,10 +21,11 @@
         mouseX = e.clientX;
         mouseY = e.clientY;
 
-        // Directional Flipping logic
-        // from left to right ([x] > lastX) the pal is flipped (true)
-        // from right to left ([x] < lastX) we are as is (false)
-        if (Math.abs(mouseX - lastMouseX) > 5) {
+        // Directional Flipping logic (Only if following AND chat is NOT visible)
+        const container = FP.state.elements.container;
+        const isChatVisible = container && container.classList.contains('chat-visible');
+
+        if (FP.state.isFollowing && !isChatVisible && Math.abs(mouseX - lastMouseX) > 5) {
             const shouldFlip = mouseX > lastMouseX;
             if (shouldFlip !== lastFlipped) {
                 lastFlipped = shouldFlip;
@@ -35,6 +36,13 @@
                 }
             }
             lastMouseX = mouseX;
+        } else if ((!FP.state.isFollowing || isChatVisible) && lastFlipped) {
+            // Reset to non-flipped if following stopped or chat opened
+            lastFlipped = false;
+            FP.state.isFlipped = false;
+            if (FP.injector && FP.injector.reRenderFollower) {
+                FP.injector.reRenderFollower();
+            }
         }
     }, { capture: true });
 

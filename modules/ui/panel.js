@@ -27,15 +27,15 @@
     };
 
     const colorRegistry = [
-        { name: "Red", hex: "#cc5d5d" },
-        { name: "Orange", hex: "#e89f5d" },
-        { name: "Yellow", hex: "#f2db6d" },
-        { name: "Green", hex: "#a0c273" },
-        { name: "Blue", hex: "#8eb7cc" },
-        { name: "Purple", hex: "#ae8fcc" },
-        { name: "Pink", hex: "#e58fcc" },
-        { name: "Gray", hex: "#949494" },
-        { name: "Black", hex: "#3d3d3d" }
+        { name: "Red", hex: "#cc5d5d", bg: "#e8acab" },
+        { name: "Orange", hex: "#e89f5d", bg: "#f8cead" },
+        { name: "Yellow", hex: "#f2db6d", bg: "#f6ebb9" },
+        { name: "Green", hex: "#a0c273", bg: "#cbd6b2" },
+        { name: "Blue", hex: "#8eb7cc", bg: "#c5dbe6" },
+        { name: "Purple", hex: "#ae8fcc", bg: "#dac0ea" },
+        { name: "Pink", hex: "#e58fcc", bg: "#edbbe1" },
+        { name: "Gray", hex: "#949494", bg: "#ccc" },
+        { name: "Black", hex: "#3d3d3d", bg: "#9f9f9f" }
     ];
 
     const accessoryRegistry = [
@@ -148,6 +148,21 @@
                 document.body.classList.remove('figpal-disabled');
             } else {
                 document.body.classList.add('figpal-disabled');
+            }
+        }
+
+        // Update Background Color
+        const stageArea = overlay.querySelector('.figpal-stage-area');
+        if (stageArea) {
+            if (currentPal.category === 'Custom') {
+                stageArea.style.backgroundColor = '#ccc'; // Keep gray for custom upload/config
+            } else {
+                const colorObj = colorRegistry.find(c => c.name === currentPal.colorName);
+                if (colorObj && colorObj.bg) {
+                    stageArea.style.backgroundColor = colorObj.bg;
+                } else {
+                    stageArea.style.backgroundColor = ''; // Reset to default CSS
+                }
             }
         }
     };

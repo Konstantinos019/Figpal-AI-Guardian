@@ -721,10 +721,15 @@
 
         const customUrl = (pal.category === "Custom" && FP.state.custom.sprites) ? FP.state.custom.sprites[pal.subType] : null;
 
+        const container = FP.state.elements.container;
+        const isChatVisible = container && container.classList.contains('chat-visible');
+        const isFollowing = FP.state.isFollowing;
+        const finalFlip = (isFollowing && !isChatVisible) ? (FP.state.isFlipped || false) : false;
+
         const assembledSvg = FP.sprite.assemble({
             ...options,
             customBodyUrl: customUrl,
-            flipped: FP.state.isFlipped || false
+            flipped: finalFlip
         });
         FP.state.elements.follower.innerHTML = assembledSvg;
 
