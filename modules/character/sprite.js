@@ -54,9 +54,9 @@
         if (options.customBodyUrl) {
             bodyUrl = options.customBodyUrl;
         } else if (category === "Custom") {
-            // User deleted the Custom folder, so we only support user-uploaded URLs now.
-            // If no customBodyUrl is provided, fallback to a blank or default.
-            bodyUrl = "";
+            // Fallback to Rock if custom upload is missing or built-in asset is gone
+            const variantFile = `Color=${colorName}.svg`;
+            bodyUrl = getAsset(`assets/pals/Object/Rock/${variantFile}`);
         } else {
             const variantFile = `Color=${colorName}.svg`;
             bodyUrl = getAsset(`${palsPath}/${category}/${subType}/${variantFile}`);

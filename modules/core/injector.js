@@ -372,7 +372,7 @@
                 // Safeguard against deleted category folder
                 if (result.activePal.subType === "ClawdBot") {
                     result.activePal.category = "Object";
-                    res.activePal.subType = "Rock";
+                    result.activePal.subType = "Rock";
                 }
                 FP.state.activePal = result.activePal;
                 console.log('FigPal: Loaded activePal and customSprites from storage', FP.state.activePal);

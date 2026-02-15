@@ -68,9 +68,13 @@
 
             if (res.activePal) {
                 // If the active pal was the now-deleted ClawdBot, reset it
-                if (res.activePal.subType === "ClawdBot") {
+                if (res.activePal.subType === "ClawdBot" || (res.activePal.category === "Custom" && !subTypeRegistry["Custom"].includes(res.activePal.subType))) {
+                    console.log("FigPal: Found invalid or deleted subtype, resetting to Rock");
                     res.activePal.category = "Object";
                     res.activePal.subType = "Rock";
+                    res.activePal.color = "#949494";
+                    res.activePal.colorName = "Gray";
+                    chrome.storage.local.set({ activePal: res.activePal });
                 }
                 Object.assign(currentPal, res.activePal);
                 FP.state.activePal = { ...currentPal };
@@ -497,16 +501,22 @@
         // Delete Custom Button Logic
         const deleteBtn = overlay.querySelector('#figpal-delete-custom');
         if (deleteBtn) {
-            deleteBtn.addEventListener('click', () => {
+            deleteBtn.addEventListener('click', (e) => {
+                e.stopPropagation();
                 const subType = currentPal.subType;
-                if (!subType || subType === 'Upload') return;
+                console.log(`FigPal: Delete clicked for ${subType}. Category: ${currentPal.category}`);
 
-                console.log(`FigPal: Attempting to delete ${subType}`);
+                if (!subType || subType === 'Upload' || currentPal.category !== 'Custom') {
+                    console.warn("FigPal: Delete ignored (invalid subType or Category)");
+                    return;
+                }
+
                 if (confirm(`Remove ${subType} from your list?`)) {
                     const types = subTypeRegistry["Custom"];
                     const idx = types.indexOf(subType);
 
                     if (idx > -1) {
+                        console.log(`FigPal: Removing ${subType} from registry`);
                         types.splice(idx, 1);
                         delete customSprites[subType];
                         delete customConfigs[subType];
@@ -516,10 +526,12 @@
                             customSprites: customSprites,
                             customSubTypes: types.filter(s => s !== "Upload"),
                             customConfigs: customConfigs
+                        }, () => {
+                            console.log("FigPal: Storage updated after deletion");
                         });
 
-                        // Logic to pick next available or fallback
-                        if (types.length === 0 || (types.length === 1 && types[0] === "Upload")) {
+                        // Select next available
+                        if (types.length <= 1) { // Only "Upload" remains
                             currentPal.category = "Object";
                             currentPal.subType = "Rock";
                         } else {
@@ -527,11 +539,9 @@
                         }
 
                         renderPreview();
-
-                        // Force re-render of follower
-                        if (FP.injector && FP.injector.reRenderFollower) {
-                            FP.injector.reRenderFollower();
-                        }
+                        if (FP.injector?.reRenderFollower) FP.injector.reRenderFollower();
+                    } else {
+                        console.error(`FigPal: Subtype ${subType} not found in registry during deletion`);
                     }
                 }
             });
