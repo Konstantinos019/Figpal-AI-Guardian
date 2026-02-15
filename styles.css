@@ -96,8 +96,8 @@ body.figpal-ui-hidden #figpal-container.resting #figpal-follower {
   padding: 0 4px;
   /* Slight padding around text */
   /* Remove gaps */
-  margin-left: -0.5px;
-  margin-right: -0.5px;
+  margin-left: -1px;
+  margin-right: -1px;
 
   /* Constraints from Figma */
   min-width: 56px;
@@ -121,6 +121,8 @@ body.figpal-ui-hidden #figpal-container.resting #figpal-follower {
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  cursor: pointer;
+  /* Indicate clickability */
 }
 
 /* Show home only when the container is NOT resting (is following) */
@@ -128,6 +130,10 @@ body.figpal-ui-hidden #figpal-container.resting #figpal-follower {
 #figpal-container:not(.resting)~#figpal-home {
   opacity: 1;
   visibility: visible;
+  pointer-events: auto;
+  /* Ensure clicks register */
+  z-index: 20000;
+  /* Ensure it's above other UI */
 }
 
 /* Character Image - Positioned Top-Right of Bubble */
@@ -1706,17 +1712,20 @@ body.resizing #react-page,
   border-radius: 50%;
   cursor: pointer;
   border: 1px solid rgba(0, 0, 0, 0.1);
+  box-sizing: border-box;
+  /* Ensure border is included in 23px */
   transition: transform 0.1s;
 }
 
 .color-dot.selected {
-  outline: 2px solid #0D99FF;
-  outline-offset: 2px;
+  /* Use box-shadow for the ring so it doesn't affect layout size */
+  box-shadow: 0 0 0 2px #FFFFFF, 0 0 0 4px #0D99FF;
+  border: 1px solid rgba(0, 0, 0, 0.1);
+  /* Keep original border */
+  outline: none;
+  /* Remove old outline */
 }
 
-.color-dot:hover {
-  transform: scale(1.1);
-}
 
 /* Namer Row */
 .figpal-namer-row {

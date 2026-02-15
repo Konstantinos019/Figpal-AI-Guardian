@@ -136,8 +136,8 @@
         });
 
         // Active Color Sync
-        overlay.querySelectorAll('.figpal-color-dot').forEach(dot => {
-            dot.classList.toggle('active', dot.dataset.colorName === currentPal.colorName);
+        overlay.querySelectorAll('.color-dot').forEach(dot => {
+            dot.classList.toggle('selected', dot.dataset.colorName === currentPal.colorName);
         });
 
         // Sync Switch UI (Preview only)

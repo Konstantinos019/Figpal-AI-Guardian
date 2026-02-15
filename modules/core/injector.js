@@ -182,32 +182,32 @@
 
                 updateToolbarBtnState();
             });
+
+            // Initialize from localStorage
+            const savedEnabled = localStorage.getItem('figpal-enabled');
+            if (savedEnabled === 'false') {
+                document.body.classList.add('figpal-disabled');
+            }
+
+            const savedDocked = localStorage.getItem('figpal-docked');
+            if (savedDocked === 'true') {
+                FP.state.elements.container.classList.add('figpal-is-docked');
+                document.body.classList.add('figpal-is-docked');
+                // Ensure no conflicting resting class
+                FP.state.elements.container.classList.remove('resting');
+            }
+
+            // Initialize Panel Width
+            const savedWidth = localStorage.getItem('figpal-panel-width') || '340';
+            document.documentElement.style.setProperty('--figpal-panel-width', savedWidth + 'px');
+
+            // Sync state
+            const observer = new MutationObserver(() => updateToolbarBtnState());
+            observer.observe(FP.state.elements.container, { attributes: true, attributeFilter: ['class'] });
+            observer.observe(document.body, { attributes: true, attributeFilter: ['class'] });
+
+            updateToolbarBtnState();
         });
-
-        // Initialize from localStorage
-        const savedEnabled = localStorage.getItem('figpal-enabled');
-        if (savedEnabled === 'false') {
-            document.body.classList.add('figpal-disabled');
-        }
-
-        const savedDocked = localStorage.getItem('figpal-docked');
-        if (savedDocked === 'true') {
-            FP.state.elements.container.classList.add('figpal-is-docked');
-            document.body.classList.add('figpal-is-docked');
-            // Ensure no conflicting resting class
-            FP.state.elements.container.classList.remove('resting');
-        }
-
-        // Initialize Panel Width
-        const savedWidth = localStorage.getItem('figpal-panel-width') || '340';
-        document.documentElement.style.setProperty('--figpal-panel-width', savedWidth + 'px');
-
-        // Sync state
-        const observer = new MutationObserver(() => updateToolbarBtnState());
-        observer.observe(FP.state.elements.container, { attributes: true, attributeFilter: ['class'] });
-        observer.observe(document.body, { attributes: true, attributeFilter: ['class'] });
-
-        updateToolbarBtnState();
     }
 
     function updateToolbarBtnState() {
@@ -249,6 +249,8 @@
         // Home signpost (Smart Component)
         const home = document.createElement('div');
         home.id = 'figpal-home';
+        // Ensure it's clickable and visible
+        home.style.pointerEvents = 'auto';
 
         const left = document.createElement('div');
         left.className = 'figpal-sign-left';

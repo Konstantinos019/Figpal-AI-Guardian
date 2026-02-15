@@ -32,17 +32,16 @@
             }
             e.stopPropagation();
 
-            if (container.classList.contains('resting')) {
-                // Wake up
-                FP.state.isFollowing = true;
-                FP.state.isReturningHome = false;
-                container.classList.remove('resting');
-                // Ghost starts at current position (physics.js reads currentX/Y)
-            } else {
-                // Toggle chat, stay put
+            if (container.classList.contains('chat-visible')) {
+                // If chat open: close chat and STAY static
+                container.classList.remove('chat-visible');
                 FP.state.isFollowing = false;
                 FP.state.isReturningHome = false;
-                container.classList.toggle('chat-visible');
+            } else {
+                // If chat closed: toggle following
+                FP.state.isFollowing = !FP.state.isFollowing;
+                FP.state.isReturningHome = false;
+                container.classList.remove('resting');
             }
         });
 
@@ -110,6 +109,7 @@
                 FP.state.currentY = e.clientY - dragOffsetY;
                 container.style.left = FP.state.currentX + 'px';
                 container.style.top = FP.state.currentY + 'px';
+                container.style.transform = '';
             }
         });
 
@@ -135,7 +135,7 @@
 
         document.addEventListener('keydown', (e) => {
             // Debug log to verify events are reaching the content script
-            if (e.altKey || e.metaKey || e.code === 'Escape') {
+            if (e.altKey || e.metaKey) {
                 console.log(`FigPal Debug: ${e.code}/${e.key} | Alt:${e.altKey} | Meta:${e.metaKey} | Target:${e.target.tagName}#${e.target.id || 'none'}`);
             }
 
@@ -157,62 +157,18 @@
                 e.preventDefault();
                 e.stopPropagation();
 
-                if (container.classList.contains('resting')) {
-                    FP.state.isFollowing = false;
-                    container.classList.remove('resting');
-                    FP.state.isReturningHome = false;
-                    container.classList.add('chat-visible');
-                } else {
-                    container.classList.toggle('chat-visible');
-                }
-
                 if (container.classList.contains('chat-visible')) {
+                    // IF CLOSING: also start following
+                    container.classList.remove('chat-visible');
+                    FP.state.isFollowing = true;
+                    FP.state.isReturningHome = false;
+                    container.classList.remove('resting');
+                } else {
+                    // IF OPENING: toggle visible
+                    container.classList.add('chat-visible');
+                    // Focus Input
                     const input = chatBubble.querySelector('input');
                     if (input) setTimeout(() => input.focus(), 50);
-                }
-            }
-
-            // Escape: Close chat/Static → Follow → Go home
-            if (e.code === 'Escape' || e.key === 'Escape') {
-                console.log('FigPal: Escape key detected');
-
-                // If docked, Esc does nothing
-                if (container.classList.contains('figpal-is-docked')) {
-                    console.log('FigPal: Escape ignored in Dock mode');
-                    return;
-                }
-
-                if (container.classList.contains('chat-visible')) {
-                    console.log('FigPal: Escape -> Closing chat & Resuming Follow');
-                    e.preventDefault();
-                    e.stopPropagation();
-                    container.classList.remove('chat-visible');
-
-                    // User requested: Chat closes AND continues to follow cursor
-                    FP.state.isFollowing = true;
-                    FP.state.isReturningHome = false;
-
-                    document.activeElement?.blur();
-                } else if (!FP.state.isFollowing && !container.classList.contains('resting')) {
-                    console.log('FigPal: Escape -> Starting Follow from static');
-                    e.preventDefault();
-                    e.stopPropagation();
-                    FP.state.isFollowing = true;
-                    FP.state.isReturningHome = false;
-                } else if (FP.state.isFollowing && !container.classList.contains('resting')) {
-                    console.log('FigPal: Escape -> Releasing to Home');
-                    e.preventDefault();
-                    e.stopPropagation();
-                    FP.state.isFollowing = false;
-                    FP.state.isReturningHome = true;
-                    // Physics loop handles the move/arrival
-                } else {
-                    console.log('FigPal: Escape -> Waking up from resting');
-                    e.preventDefault();
-                    e.stopPropagation();
-                    FP.state.isFollowing = true;
-                    FP.state.isReturningHome = false;
-                    container.classList.remove('resting');
                 }
             }
         }, { capture: true });
