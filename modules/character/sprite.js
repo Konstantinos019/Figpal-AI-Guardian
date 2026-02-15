@@ -54,7 +54,9 @@
         if (options.customBodyUrl) {
             bodyUrl = options.customBodyUrl;
         } else if (category === "Custom") {
-            bodyUrl = getAsset(`${palsPath}/${category}/${subType}.svg`);
+            // User deleted the Custom folder, so we only support user-uploaded URLs now.
+            // If no customBodyUrl is provided, fallback to a blank or default.
+            bodyUrl = "";
         } else {
             const variantFile = `Color=${colorName}.svg`;
             bodyUrl = getAsset(`${palsPath}/${category}/${subType}/${variantFile}`);

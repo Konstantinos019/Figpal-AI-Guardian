@@ -363,10 +363,19 @@
         FP.state.elements = { container, follower, chatBubble, home };
 
         // Render Initial state (Active Pal)
-        chrome.storage.local.get(['activePal'], (result) => {
+        chrome.storage.local.get(['activePal', 'customSprites'], (result) => {
+            if (result.customSprites) {
+                FP.state.customSprites = result.customSprites;
+            }
+
             if (result.activePal) {
+                // Safeguard against deleted category folder
+                if (result.activePal.subType === "ClawdBot") {
+                    result.activePal.category = "Object";
+                    res.activePal.subType = "Rock";
+                }
                 FP.state.activePal = result.activePal;
-                console.log('FigPal: Loaded activePal from storage', FP.state.activePal);
+                console.log('FigPal: Loaded activePal and customSprites from storage', FP.state.activePal);
                 updatePalName(FP.state.activePal.name);
             }
             reRenderFollower();
@@ -690,7 +699,10 @@
         const pal = FP.state.activePal || {
             category: "Object",
             subType: "Rock",
-            colorName: "Gray"
+            colorName: "Gray",
+            color: "#949494",
+            accessory: "None",
+            parts: ["body"]
         };
 
         // If thinking, inject Lightbulb accessory
@@ -699,7 +711,12 @@
             options.accessory = "Lightbulb";
         }
 
-        const assembledSvg = FP.sprite.assemble(options);
+        const customUrl = (pal.category === "Custom" && FP.state.customSprites) ? FP.state.customSprites[pal.subType] : null;
+
+        const assembledSvg = FP.sprite.assemble({
+            ...options,
+            customBodyUrl: customUrl
+        });
         FP.state.elements.follower.innerHTML = assembledSvg;
 
         // Also update the header avatar if present

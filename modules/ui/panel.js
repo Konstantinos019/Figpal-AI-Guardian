@@ -31,7 +31,7 @@
             "Animal": ["Capybara", "Bird", "Rodent", "Dog", "Cat", "Caterpillar", "Duck", "Frog", "Fish", "Pufferfish", "Snail", "Elephant", "Snake"],
             "Food": ["Pancake", "Coffee", "Onigiri", "Veggie", "Pizza", "Bao", "Bread", "Sushi", "Boba", "Fruit", "Coconut", "Egg"],
             "Figma": ["Heart", "Pencil", "Comment", "Library", "Overlap", "Union", "Pen", "Pointer", "Figma"],
-            "Custom": ["ClawdBot", "Upload"]
+            "Custom": ["Upload"]
         };
 
         const colorRegistry = [
@@ -62,10 +62,16 @@
             if (res.customConfigs) Object.assign(customConfigs, res.customConfigs);
             if (res.customSprites) Object.assign(customSprites, res.customSprites);
             if (res.customSubTypes) {
-                subTypeRegistry["Custom"] = [...res.customSubTypes, "Upload"];
+                // Filter out any hardcoded legacy names like ClawdBot
+                subTypeRegistry["Custom"] = [...res.customSubTypes.filter(s => s !== "ClawdBot"), "Upload"];
             }
 
             if (res.activePal) {
+                // If the active pal was the now-deleted ClawdBot, reset it
+                if (res.activePal.subType === "ClawdBot") {
+                    res.activePal.category = "Object";
+                    res.activePal.subType = "Rock";
+                }
                 Object.assign(currentPal, res.activePal);
                 FP.state.activePal = { ...currentPal };
 
