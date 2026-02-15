@@ -1517,61 +1517,77 @@ body.resizing #react-page,
   /* Figma: gap-24 */
 }
 
-/* Custom Action Buttons */
-.figpal-custom-actions {
-  display: flex;
-  gap: 8px;
+/* Custom Action Buttons (Figma Mockup) */
+.figpal-interaction-row {
+  margin-top: 14px;
   width: 100%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.figpal-custom-actions {
+  display: none;
+  /* Shown via JS */
+  gap: 6px;
   align-items: center;
 }
 
 .figpal-acc-rotate-btn {
-  flex: 1;
   height: 28px;
-  background: #FFFFFF !important;
-  border: 1px solid rgba(0, 0, 0, 0.1) !important;
-  border-radius: 6px !important;
-  color: #1A1A1A !important;
-  font-size: 10px !important;
-  font-weight: 600 !important;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-  transition: all 0.2s ease;
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
-}
-
-.figpal-acc-rotate-btn:hover {
-  background: #F9F9F9 !important;
-  border-color: rgba(0, 0, 0, 0.2) !important;
-  transform: translateY(-1px);
-}
-
-.figpal-acc-rotate-btn:active {
-  transform: translateY(0);
-}
-
-.figpal-delete-btn {
-  width: 28px;
-  height: 28px;
-  padding: 0 !important;
-  background: #FFF5F5 !important;
-  border: 1px solid #FFCDCD !important;
-  color: #D73A49 !important;
-  border-radius: 6px !important;
+  padding: 0 16px !important;
+  background: #0D99FF !important;
+  border: none !important;
+  border-radius: 24px !important;
+  color: #FFFFFF !important;
+  font-size: 8px !important;
+  font-weight: 500 !important;
+  text-transform: capitalize;
+  letter-spacing: -0.16px;
   cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: center;
   transition: all 0.2s ease;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+}
+
+.figpal-acc-rotate-btn:hover {
+  background: #0081E0 !important;
+  transform: translateY(-1px);
+}
+
+.figpal-delete-btn {
+  height: 28px;
+  padding: 0 16px !important;
+  background: #FF2929 !important;
+  border: none !important;
+  color: #FFFFFF !important;
+  border-radius: 24px !important;
+  font-size: 8px !important;
+  font-weight: 500 !important;
+  text-transform: capitalize;
+  letter-spacing: -0.16px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
 }
 
 .figpal-delete-btn:hover {
-  background: #FFEBEB !important;
-  border-color: #FFB3B3 !important;
+  background: #E61E1E !important;
+  transform: translateY(-1px);
 }
 
-.figpal-delete-btn span {
-  font-size: 14px;
+/* Upload Placeholder Styling */
+.figpal-upload-placeholder {
+  transition: background 0.2s ease;
+}
+
+.figpal-upload-placeholder:hover {
+  background: rgba(0, 0, 0, 0.02);
 }
 
 .figpal-nav-col {

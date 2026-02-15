@@ -87,9 +87,9 @@
             idx = (idx + direction + accessoryRegistry.length) % accessoryRegistry.length;
             const nextAcc = accessoryRegistry[idx];
 
+            // Critical fix: update BOTH currentPal AND custom memory
             currentPal.accessory = nextAcc;
 
-            // Sync with memory if in Custom tab
             if (currentPal.category === 'Custom' && currentPal.subType !== 'Upload') {
                 const config = customConfigs[currentPal.subType] || { accessoryPosition: "Top" };
                 config.accessory = nextAcc;
@@ -193,6 +193,11 @@
                 stageDisc.innerHTML = FP.sprite.getStage(currentPal.category);
             }
 
+            // Sync Tab Classes
+            overlay.querySelectorAll('.figpal-tab').forEach(t => {
+                t.classList.toggle('active', t.dataset.tab === currentPal.category);
+            });
+
             // Toggle Interaction Row (Dots vs Delete)
             const dotsContainer = overlay.querySelector('.figpal-color-dots');
             const customActions = overlay.querySelector('.figpal-custom-actions');
@@ -206,19 +211,31 @@
                                 <div style="width:40px; height:40px; border-radius:50%; background:rgba(0,0,0,0.05); display:flex; align-items:center; justify-content:center; margin-bottom:12px;">
                                     <span style="font-size:20px; color:rgba(0,0,0,0.4);">+</span>
                                 </div>
-                                <span style="color:rgba(0,0,0,0.4); font-size:11px; font-weight:600; text-transform:uppercase; letter-spacing:0.5px;">Add New Bot</span>
+                                <span style="color:rgba(0,0,0,0.4); font-size:11px; font-weight:600; text-transform:uppercase; letter-spacing:0.5px;">Add New</span>
                             </div>
                         `;
                     }
                     if (dotsContainer) dotsContainer.style.display = 'none';
                     if (customActions) customActions.style.display = 'none'; // No actions for "Upload" placeholder
+
+                    // Hide stage and arrows for Upload
+                    if (stageDisc) stageDisc.style.display = 'none';
+                    overlay.querySelectorAll('.figpal-nav-overlay').forEach(el => el.style.display = 'none');
                 } else {
                     if (dotsContainer) dotsContainer.style.display = 'none';
                     if (customActions) customActions.style.display = 'flex'; // Use flex to match CSS
+
+                    // Show stage and arrows for actual bots
+                    if (stageDisc) stageDisc.style.display = 'block';
+                    overlay.querySelectorAll('.figpal-nav-overlay').forEach(el => el.style.display = 'flex');
                 }
             } else {
                 if (dotsContainer) dotsContainer.style.display = 'flex';
                 if (customActions) customActions.style.display = 'none';
+
+                // Show stage and arrows for normal categories
+                if (stageDisc) stageDisc.style.display = 'block';
+                overlay.querySelectorAll('.figpal-nav-overlay').forEach(el => el.style.display = 'flex');
             }
         };
 
@@ -231,21 +248,20 @@
                 
                 <div class="figpal-panel-content">
                     <div class="figpal-panel-main">
-                        <!-- Tab Bar -->
                         <div class="figpal-tab-bar">
-                            <div class="figpal-tab" data-tab="Animal">
+                            <div class="figpal-tab ${currentPal.category === 'Animal' ? 'active' : ''}" data-tab="Animal">
                                 ${getIconFileHTML('Animal')}
                             </div>
-                            <div class="figpal-tab" data-tab="Food">
+                            <div class="figpal-tab ${currentPal.category === 'Food' ? 'active' : ''}" data-tab="Food">
                                 ${getIconFileHTML('Food')}
                             </div>
-                            <div class="figpal-tab active" data-tab="Object">
+                            <div class="figpal-tab ${currentPal.category === 'Object' ? 'active' : ''}" data-tab="Object">
                                 ${getIconFileHTML('Object')}
                             </div>
-                            <div class="figpal-tab" data-tab="Figma">
+                            <div class="figpal-tab ${currentPal.category === 'Figma' ? 'active' : ''}" data-tab="Figma">
                                 ${getIconFileHTML('Figma')}
                             </div>
-                            <div class="figpal-tab" data-tab="Custom">
+                            <div class="figpal-tab ${currentPal.category === 'Custom' ? 'active' : ''}" data-tab="Custom">
                                 ${getIconFileHTML('Custom avatar')}
                             </div>
                         </div>
@@ -289,10 +305,10 @@
                             </div>
                             <div class="figpal-custom-actions" style="display:none;">
                                 <button class="figpal-acc-rotate-btn" id="figpal-accessory-rotate">
-                                    <span>🔄</span> Rotate Position
+                                    Shuffle position
                                 </button>
                                 <button class="figpal-delete-btn" id="figpal-delete-custom">
-                                    <span>🗑️</span>
+                                    Delete
                                 </button>
                             </div>
                         </div>
