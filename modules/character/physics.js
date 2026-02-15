@@ -14,10 +14,29 @@
     const followSpeed = 0.10;
 
     // Track mouse globally
+    let lastMouseX = 0;
+    let lastFlipped = false;
+
     window.addEventListener('mousemove', (e) => {
         mouseX = e.clientX;
         mouseY = e.clientY;
-    });
+
+        // Directional Flipping logic
+        // from left to right ([x] > lastX) the pal is flipped (true)
+        // from right to left ([x] < lastX) we are as is (false)
+        if (Math.abs(mouseX - lastMouseX) > 5) {
+            const shouldFlip = mouseX > lastMouseX;
+            if (shouldFlip !== lastFlipped) {
+                lastFlipped = shouldFlip;
+                FP.state.isFlipped = shouldFlip;
+                // Trigger re-render to apply the flip immediately
+                if (FP.injector && FP.injector.reRenderFollower) {
+                    FP.injector.reRenderFollower();
+                }
+            }
+            lastMouseX = mouseX;
+        }
+    }, { capture: true });
 
     // ─── Animation Loop ──────────────────────────────────────────────────
     function animate() {

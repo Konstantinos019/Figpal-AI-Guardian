@@ -41,6 +41,7 @@
         const subType = options.subType || "Rock";
         const colorName = options.colorName || "Gray";
         const accessory = options.accessory || ""; // Can be "Halo", "Sparkle", etc.
+        const isFlipped = options.flipped || false;
 
         const getAsset = (path) => {
             try { return chrome.runtime.getURL(path); } catch (e) { return ""; }
@@ -62,7 +63,8 @@
             bodyUrl = getAsset(`${palsPath}/${category}/${subType}/${variantFile}`);
         }
 
-        const errLog = `console.error('FigPal: Image load failure -> ' + this.src)`;
+        const fallbackRock = getAsset(`assets/pals/Object/Rock/Color=${colorName}.svg`);
+        const errLog = `this.onerror=null; this.src='${fallbackRock}'; console.warn('FigPal: Sprite load failed, falling back to Rock', this.src);`;
 
         layersHtml += `<img src="${bodyUrl}" onerror="${errLog}" style="position:absolute; inset:0; width:100%; height:100%; object-fit:contain; z-index:1;">`;
 
@@ -104,7 +106,8 @@
             layersHtml += `<img src="${accessoryUrl}" onerror="${errLog}" style="position:absolute; inset:0; width:100%; height:100%; object-fit:contain; z-index:5;">`;
         }
 
-        return `<div class="figpal-sprite-container" style="position:relative; width:100%; height:100%;">${layersHtml}</div>`;
+        const flipStyle = isFlipped ? 'transform: scaleX(-1);' : '';
+        return `<div class="figpal-sprite-container" style="position:relative; width:100%; height:100%; ${flipStyle}">${layersHtml}</div>`;
     };
 
     FP.sprite.getIcon = function (name, color = "#1A1A1A") {
@@ -126,9 +129,11 @@
         const getAsset = (path) => {
             try { return chrome.runtime.getURL(path); } catch (e) { return ""; }
         };
-        const stageCategory = (category === "Custom") ? "Object" : category;
-        const stageUrl = getAsset(`assets/stage/Category=${stageCategory}.svg`);
-        console.log(`FigPal Debug: Stage lookup -> category="${category}", path="assets/stage/Category=${stageCategory}.svg", url="${stageUrl}"`);
+        const stageUrl = (category === "Custom")
+            ? getAsset(`assets/stage/Custom.svg`)
+            : getAsset(`assets/stage/Category=${category}.svg`);
+
+        console.log(`FigPal Debug: Stage lookup -> category="${category}", url="${stageUrl}"`);
         const errLog = `console.error('FigPal Error: Stage failed to load -> ' + this.src)`;
 
         return `<img src="${stageUrl}" onerror="${errLog}" class="figpal-stage-svg" style="width:100%; height:100%; display:block; object-fit:contain;">`;

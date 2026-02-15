@@ -8,6 +8,14 @@
     const FP = window.FigPal;
     let isInjected = false;
 
+    // Shared state namespace
+    FP.state = FP.state || {};
+    FP.state.custom = {
+        sprites: {},   // Map of subType -> dataURL
+        subTypes: [],  // Ordered list of custom subTypes
+        configs: {}    // Per-subtype accessory/position memory
+    };
+
     // ─── SPA Polling ─────────────────────────────────────────────────────
     function start() {
         setInterval(() => {
@@ -363,10 +371,10 @@
         FP.state.elements = { container, follower, chatBubble, home };
 
         // Render Initial state (Active Pal)
-        chrome.storage.local.get(['activePal', 'customSprites'], (result) => {
-            if (result.customSprites) {
-                FP.state.customSprites = result.customSprites;
-            }
+        chrome.storage.local.get(['activePal', 'customSprites', 'customSubTypes', 'customConfigs'], (result) => {
+            if (result.customSprites) FP.state.custom.sprites = result.customSprites;
+            if (result.customSubTypes) FP.state.custom.subTypes = result.customSubTypes;
+            if (result.customConfigs) FP.state.custom.configs = result.customConfigs;
 
             if (result.activePal) {
                 // Safeguard against deleted category folder
@@ -375,30 +383,30 @@
                     result.activePal.subType = "Rock";
                 }
                 FP.state.activePal = result.activePal;
-                console.log('FigPal: Loaded activePal and customSprites from storage', FP.state.activePal);
+                console.log('FigPal: Loaded state from storage', FP.state.activePal);
                 updatePalName(FP.state.activePal.name);
             }
+            // ─── Listen for Name Updates ─────────────────────────────────────
+            FP.on('pal-name-changed', (newName) => {
+                updatePalName(newName);
+            });
+
+            // ─── Wire up UI ──────────────────────────────────────────────────
+            wireCloseButton(chatBubble, container);
+            wireDockButton(chatBubble, container);
+            wireModelSelector(chatBubble);
+            wireSendButton(chatBubble);
+            wireStopButton(chatBubble, follower);
+            wireInputListeners(chatBubble);
+            wireAuthModal(container); // New functionality
+
             reRenderFollower();
+
+            // ─── Bootstrap modules (Move inside storage callback) ────────────
+            FP.setup.init();
+            FP.character.startAnimation();
+            FP.character.initInteractions();
         });
-
-        // ─── Listen for Name Updates ─────────────────────────────────────
-        FP.on('pal-name-changed', (newName) => {
-            updatePalName(newName);
-        });
-
-        // ─── Wire up UI ──────────────────────────────────────────────────
-        wireCloseButton(chatBubble, container);
-        wireDockButton(chatBubble, container);
-        wireModelSelector(chatBubble);
-        wireSendButton(chatBubble);
-        wireStopButton(chatBubble, follower);
-        wireInputListeners(chatBubble);
-        wireAuthModal(container); // New functionality
-
-        // ─── Bootstrap modules ───────────────────────────────────────────
-        FP.setup.init();
-        FP.character.startAnimation();
-        FP.character.initInteractions();
 
         // ─── Listen for thinking state → toggle buttons ──────────────────
         FP.on('ai-thinking', (isThinking) => {
@@ -692,11 +700,11 @@
         }
     }
 
-    function reRenderFollower() {
+    function reRenderFollower(palToRender = null) {
         if (!FP.state.elements.follower || !FP.sprite?.assemble) return;
 
-        // Use activePal from state or default if not set
-        const pal = FP.state.activePal || {
+        // Use provided pal object (for preview) or fall back to global activePal
+        const pal = palToRender || FP.state.activePal || {
             category: "Object",
             subType: "Rock",
             colorName: "Gray",
@@ -711,11 +719,12 @@
             options.accessory = "Lightbulb";
         }
 
-        const customUrl = (pal.category === "Custom" && FP.state.customSprites) ? FP.state.customSprites[pal.subType] : null;
+        const customUrl = (pal.category === "Custom" && FP.state.custom.sprites) ? FP.state.custom.sprites[pal.subType] : null;
 
         const assembledSvg = FP.sprite.assemble({
             ...options,
-            customBodyUrl: customUrl
+            customBodyUrl: customUrl,
+            flipped: FP.state.isFlipped || false
         });
         FP.state.elements.follower.innerHTML = assembledSvg;
 
