@@ -1517,6 +1517,63 @@ body.resizing #react-page,
   /* Figma: gap-24 */
 }
 
+/* Custom Action Buttons */
+.figpal-custom-actions {
+  display: flex;
+  gap: 8px;
+  width: 100%;
+  align-items: center;
+}
+
+.figpal-acc-rotate-btn {
+  flex: 1;
+  height: 28px;
+  background: #FFFFFF !important;
+  border: 1px solid rgba(0, 0, 0, 0.1) !important;
+  border-radius: 6px !important;
+  color: #1A1A1A !important;
+  font-size: 10px !important;
+  font-weight: 600 !important;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  transition: all 0.2s ease;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+}
+
+.figpal-acc-rotate-btn:hover {
+  background: #F9F9F9 !important;
+  border-color: rgba(0, 0, 0, 0.2) !important;
+  transform: translateY(-1px);
+}
+
+.figpal-acc-rotate-btn:active {
+  transform: translateY(0);
+}
+
+.figpal-delete-btn {
+  width: 28px;
+  height: 28px;
+  padding: 0 !important;
+  background: #FFF5F5 !important;
+  border: 1px solid #FFCDCD !important;
+  color: #D73A49 !important;
+  border-radius: 6px !important;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+}
+
+.figpal-delete-btn:hover {
+  background: #FFEBEB !important;
+  border-color: #FFB3B3 !important;
+}
+
+.figpal-delete-btn span {
+  font-size: 14px;
+}
+
 .figpal-nav-col {
   display: flex;
   flex-direction: column;

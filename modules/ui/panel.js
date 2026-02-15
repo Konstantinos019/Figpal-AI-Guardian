@@ -31,7 +31,7 @@
             "Animal": ["Capybara", "Bird", "Rodent", "Dog", "Cat", "Caterpillar", "Duck", "Frog", "Fish", "Pufferfish", "Snail", "Elephant", "Snake"],
             "Food": ["Pancake", "Coffee", "Onigiri", "Veggie", "Pizza", "Bao", "Bread", "Sushi", "Boba", "Fruit", "Coconut", "Egg"],
             "Figma": ["Heart", "Pencil", "Comment", "Library", "Overlap", "Union", "Pen", "Pointer", "Figma"],
-            "Custom": ["ClawdBot"]
+            "Custom": ["ClawdBot", "Upload"]
         };
 
         const colorRegistry = [
@@ -47,6 +47,8 @@
         ];
 
         const accessoryRegistry = [
+            "None", "Angry", "Antennae", "BeigeHat", "BlueHat", "Candle", "Excitement", "Flower",
+            "GrayHat", "GreenBeanie", "Halo", "Heart", "Lightbulb", "PartyHat", "PinkBeanie",
             "PropellerHat", "Question", "RedBeanie", "Sparkle", "Sprout", "Sweat", "Thinking",
             "Tophat", "WitchHat", "WizardHat"
         ];
@@ -82,9 +84,18 @@
         const cycleAccessory = (direction) => {
             let idx = accessoryRegistry.indexOf(currentPal.accessory);
             if (idx === -1) idx = 0;
-
             idx = (idx + direction + accessoryRegistry.length) % accessoryRegistry.length;
-            currentPal.accessory = accessoryRegistry[idx];
+            const nextAcc = accessoryRegistry[idx];
+
+            currentPal.accessory = nextAcc;
+
+            // Sync with memory if in Custom tab
+            if (currentPal.category === 'Custom' && currentPal.subType !== 'Upload') {
+                const config = customConfigs[currentPal.subType] || { accessoryPosition: "Top" };
+                config.accessory = nextAcc;
+                customConfigs[currentPal.subType] = config;
+            }
+
             renderPreview();
         };
 
@@ -187,8 +198,24 @@
             const customActions = overlay.querySelector('.figpal-custom-actions');
 
             if (currentPal.category === 'Custom') {
-                if (dotsContainer) dotsContainer.style.display = 'none';
-                if (customActions) customActions.style.display = 'block';
+                if (currentPal.subType === 'Upload') {
+                    // Show special Upload placeholder
+                    if (previewContainer) {
+                        previewContainer.innerHTML = `
+                            <div class="figpal-upload-placeholder" style="width:100%; height:100%; display:flex; flex-direction:column; align-items:center; justify-content:center; cursor:pointer;" onclick="console.log('Open Upload Picker')">
+                                <div style="width:40px; height:40px; border-radius:50%; background:rgba(0,0,0,0.05); display:flex; align-items:center; justify-content:center; margin-bottom:12px;">
+                                    <span style="font-size:20px; color:rgba(0,0,0,0.4);">+</span>
+                                </div>
+                                <span style="color:rgba(0,0,0,0.4); font-size:11px; font-weight:600; text-transform:uppercase; letter-spacing:0.5px;">Add New Bot</span>
+                            </div>
+                        `;
+                    }
+                    if (dotsContainer) dotsContainer.style.display = 'none';
+                    if (customActions) customActions.style.display = 'none'; // No actions for "Upload" placeholder
+                } else {
+                    if (dotsContainer) dotsContainer.style.display = 'none';
+                    if (customActions) customActions.style.display = 'flex'; // Use flex to match CSS
+                }
             } else {
                 if (dotsContainer) dotsContainer.style.display = 'flex';
                 if (customActions) customActions.style.display = 'none';
@@ -260,11 +287,11 @@
                                 <div class="color-dot selected" data-color-name="Gray" data-color="#949494" style="background:#949494"></div>
                                 <div class="color-dot" data-color-name="Black" data-color="#3d3d3d" style="background:#3d3d3d"></div>
                             </div>
-                            <div class="figpal-custom-actions" style="display:none; width: 100%; display: flex; gap: 8px;">
-                                <button class="figpal-nav-btn figpal-acc-rotate-btn" id="figpal-accessory-rotate" style="flex: 1; padding: 6px; background: #fff; border: 1px solid rgba(0,0,0,0.1); border-radius: 4px; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 6px; font-size: 10px; font-weight: 500; text-transform: uppercase;">
+                            <div class="figpal-custom-actions" style="display:none;">
+                                <button class="figpal-acc-rotate-btn" id="figpal-accessory-rotate">
                                     <span>🔄</span> Rotate Position
                                 </button>
-                                <button class="figpal-delete-btn" id="figpal-delete-custom" style="padding: 6px 12px; background: transparent; border: 1px solid #FFCDCD; color: #D73A49; border-radius: 4px; cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 10px;">
+                                <button class="figpal-delete-btn" id="figpal-delete-custom">
                                     <span>🗑️</span>
                                 </button>
                             </div>
