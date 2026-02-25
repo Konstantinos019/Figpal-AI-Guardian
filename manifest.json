@@ -14,7 +14,8 @@
     "https://api.openai.com/*",
     "https://api.anthropic.com/*",
     "https://slack.com/*",
-    "https://hooks.slack.com/*"
+    "https://hooks.slack.com/*",
+    "https://piranesi.skroutz.io/*"
   ],
   "content_scripts": [
     {
