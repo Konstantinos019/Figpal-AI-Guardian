@@ -5,7 +5,8 @@
   "description": "A friendly DS Guardian that follows your cursor on Figma.",
   "permissions": [
     "activeTab",
-    "storage"
+    "storage",
+    "declarativeNetRequest"
   ],
   "host_permissions": [
     "*://*.figma.com/*",
@@ -15,7 +16,8 @@
     "https://api.anthropic.com/*",
     "https://slack.com/*",
     "https://hooks.slack.com/*",
-    "https://piranesi.skroutz.io/*"
+    "https://piranesi.skroutz.io/*",
+    "https://skroutz.cloudflareaccess.com/*"
   ],
   "content_scripts": [
     {
@@ -49,7 +51,6 @@
         "modules/core/diff-engine.js",
         "modules/core/monitor.js",
         "modules/features/web-search.js",
-        "modules/features/web-search.js",
         "modules/core/injector.js",
         "content.js"
       ],
@@ -72,5 +73,14 @@
         "<all_urls>"
       ]
     }
-  ]
+  ],
+  "declarative_net_request": {
+    "rule_resources": [
+      {
+        "id": "ruleset_1",
+        "enabled": true,
+        "path": "net_rules.json"
+      }
+    ]
+  }
 }
