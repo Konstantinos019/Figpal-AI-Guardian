@@ -17,7 +17,8 @@
     "https://slack.com/*",
     "https://hooks.slack.com/*",
     "https://piranesi.skroutz.io/*",
-    "https://skroutz.cloudflareaccess.com/*"
+    "https://skroutz.cloudflareaccess.com/*",
+    "https://ids-hackathon-2026-ds-ai-git-8e1526-stephane-chevreuxs-projects.vercel.app/*"
   ],
   "content_scripts": [
     {
