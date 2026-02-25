@@ -358,31 +358,10 @@
            </button>
         </div>
       </div>
-      <div class="figpal-chat-content">
-        <!-- Messages injected here by renderer.js -->
+      <div id="figpal-chat-shell" style="flex:1; width:100%; height:100%; overflow:hidden; position:relative;">
+        <iframe id="figpal-chat-iframe" src="about:blank" style="width:100%; height:100%; border:none; background:transparent;"></iframe>
       </div>
-      <div class="figpal-chat-input-area">
-        <input type="text" placeholder="Ask me anything..." />
-        <button id="figpal-send-btn" title="Send message">
-          <svg width="10" height="10" viewBox="0 0 10 10" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <path d="M1 9L9 5L1 1V9Z" fill="white"/>
-          </svg>
-        </button>
-        <button id="figpal-stop-btn" title="Stop generating" style="display: none;">
-          <svg width="10" height="10" viewBox="0 0 10 10" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <rect width="10" height="10" rx="2" fill="white"/>
-          </svg>
-        </button>
-      </div>
-      <div class="figpal-chat-footer">
-        <div class="figpal-model-pill">
-            <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor" style="transform: rotate(180deg);">
-               <path d="M7.41 15.41L12 10.83L16.59 15.41L18 14L12 8L6 14L7.41 15.41Z"/>
-            </svg>
-            <span id="figpal-model-name">Loading...</span>
-            <select id="figpal-model-selector" title="Change AI Model"></select>
-        </div>
-      </div>
+
       <div class="figpal-resizer top"></div>
       <div class="figpal-resizer top-left"></div>
       <div class="figpal-resizer top-right"></div>
