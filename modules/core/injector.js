@@ -359,7 +359,7 @@
         </div>
       </div>
       <div id="figpal-chat-shell" style="flex:1; width:100%; height:100%; overflow:hidden; position:relative;">
-        <iframe id="figpal-chat-iframe" src="about:blank" style="width:100%; height:100%; border:none; background:transparent;"></iframe>
+        <iframe id="figpal-chat-iframe" src="https://piranesi.skroutz.io/" style="width:100%; height:100%; border:none; background:transparent;"></iframe>
       </div>
 
       <div class="figpal-resizer top"></div>
