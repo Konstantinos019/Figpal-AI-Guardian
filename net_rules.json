@@ -79,5 +79,59 @@
                 "sub_frame"
             ]
         }
+    },
+    {
+        "id": 4,
+        "priority": 1,
+        "action": {
+            "type": "modifyHeaders",
+            "responseHeaders": [
+                {
+                    "header": "x-frame-options",
+                    "operation": "remove"
+                },
+                {
+                    "header": "content-security-policy",
+                    "operation": "remove"
+                },
+                {
+                    "header": "frame-options",
+                    "operation": "remove"
+                }
+            ]
+        },
+        "condition": {
+            "urlFilter": "*://*.vercel.com/*",
+            "resourceTypes": [
+                "sub_frame"
+            ]
+        }
+    },
+    {
+        "id": 5,
+        "priority": 1,
+        "action": {
+            "type": "modifyHeaders",
+            "responseHeaders": [
+                {
+                    "header": "x-frame-options",
+                    "operation": "remove"
+                },
+                {
+                    "header": "content-security-policy",
+                    "operation": "remove"
+                },
+                {
+                    "header": "frame-options",
+                    "operation": "remove"
+                }
+            ]
+        },
+        "condition": {
+            "urlFilter": "*://vercel.com/*",
+            "resourceTypes": [
+                "sub_frame"
+            ]
+        }
     }
 ]
