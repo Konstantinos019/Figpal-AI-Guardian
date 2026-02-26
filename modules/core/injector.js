@@ -360,7 +360,7 @@
       </div>
       <div id="figpal-chat-shell" style="flex: 1 1 auto; width:100%; height: calc(100% - 44px); overflow:hidden; position:relative; background: #ffffff; border-top: 1px solid #E5E5E5;">
         <div style="position:absolute; top:50%; left:50%; transform:translate(-50%, -50%); color:#ccc; font-size:12px; pointer-events:none;">Loading Health Tracker...</div>
-        <iframe id="figpal-chat-iframe" src="https://growth-tracker.vercel.app/" style="position:relative; z-index:1; width:100%; height:100%; border:none; display: block; background: transparent;"></iframe>
+        <iframe id="figpal-chat-iframe" src="http://localhost:3001/" style="position:relative; z-index:1; width:100%; height:100%; border:none; display: block; background: transparent;"></iframe>
       </div>
 
       <div class="figpal-resizer top"></div>
