@@ -578,6 +578,7 @@ export default function Home() {
   const [localFigmaMcpUrl, setLocalFigmaMcpUrl] = useState(process.env.NEXT_PUBLIC_LOCAL_MCP_FIGMA_URL || "");
   const [localCodeMcpUrl, setLocalCodeMcpUrl] = useState(process.env.NEXT_PUBLIC_LOCAL_MCP_CODE_URL || "");
   const [isBridgeConnected, setIsBridgeConnected] = useState(false);
+  const [showConnectors, setShowConnectors] = useState(true);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
@@ -601,6 +602,19 @@ export default function Home() {
   localFigmaMcpUrlRef.current = localFigmaMcpUrl;
   const localCodeMcpUrlRef = useRef(localCodeMcpUrl);
   localCodeMcpUrlRef.current = localCodeMcpUrl;
+
+  // Load persistence for showConnectors
+  useEffect(() => {
+    const saved = localStorage.getItem('figpal-show-connectors');
+    if (saved !== null) {
+      setShowConnectors(saved === 'true');
+    }
+  }, []);
+
+  // Save persistence for showConnectors
+  useEffect(() => {
+    localStorage.setItem('figpal-show-connectors', String(showConnectors));
+  }, [showConnectors]);
 
   useEffect(() => {
     const handleMessage = (event: MessageEvent) => {
