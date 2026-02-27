@@ -26,7 +26,7 @@ function getMcpCodeUrl(request: NextRequest): string | undefined {
   return url.replace(/\/$/, '');
 }
 
-export async function proxy(request: NextRequest) {
+export async function middleware(request: NextRequest) {
   const { pathname, search } = request.nextUrl;
   const MCP_CODE_URL = getMcpCodeUrl(request);
 
@@ -36,10 +36,10 @@ export async function proxy(request: NextRequest) {
   }
 
   // Skip auth check for public auth routes (browser redirects don't have custom headers)
-  const isPublicAuthRoute = PUBLIC_AUTH_ROUTES.some(route => 
+  const isPublicAuthRoute = PUBLIC_AUTH_ROUTES.some(route =>
     pathname === route || pathname.startsWith(`${route}/`)
   );
-  
+
   if (isPublicAuthRoute) {
     console.log("[Middleware] Skipping X-Auth-Token check for public auth route:", pathname);
     return NextResponse.next();
@@ -101,7 +101,7 @@ export async function proxy(request: NextRequest) {
       if (targetPath === "sse" && request.method === "GET") {
         const encoder = new TextEncoder();
         const decoder = new TextDecoder();
-        
+
         const stream = new ReadableStream({
           async start(controller) {
             try {
@@ -118,11 +118,11 @@ export async function proxy(request: NextRequest) {
               }
 
               const reader = response.body.getReader();
-              
+
               while (true) {
                 const { done, value } = await reader.read();
                 if (done) break;
-                
+
                 // Décoder et modifier le contenu pour remapper les URLs
                 const text = decoder.decode(value, { stream: true });
                 // Remplacer toute URL relative "/xxx" par "/proxy-local/code/xxx"
@@ -130,10 +130,10 @@ export async function proxy(request: NextRequest) {
                   /data:\s(\/[^\s\n\r]*)/g,
                   `data: ${PROXY_PREFIX}$1`
                 );
-                
+
                 controller.enqueue(encoder.encode(modifiedText));
               }
-              
+
               controller.close();
             } catch (e) {
               console.error("[Proxy Middleware] SSE error:", e);
@@ -164,7 +164,7 @@ export async function proxy(request: NextRequest) {
       });
 
       const data = await response.text();
-      
+
       return new NextResponse(data, {
         status: response.status,
         headers: {

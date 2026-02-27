@@ -507,6 +507,51 @@ figma.ui.onmessage = async (msg) => {
         }
     }
 
+    // DISPATCHER for AI Tool Calls forwarded from the extension bridge
+    if (type === 'execute-tool') {
+        const { toolName, args, toolCallId } = data || msg.data;
+        console.log(`FigPal Bridge: Executing intercepted tool [${toolName}]`, args);
+
+        try {
+            let result;
+            if (toolName === 'figma_execute') {
+                const code = args.code;
+                const timeoutMs = args.timeout || 5000;
+                const wrappedCode = "(async function() {\n" + code + "\n})()";
+
+                const timeoutPromise = new Promise((_, reject) => {
+                    setTimeout(() => reject(new Error('Execution timed out after ' + timeoutMs + 'ms')), timeoutMs);
+                });
+
+                result = await Promise.race([eval(wrappedCode), timeoutPromise]);
+            } else {
+                // Map tool names to the shared executeTool helper
+                const mappedName = toolName.startsWith('figma_') ? toolName.replace('figma_', '') : toolName;
+                result = await executeTool(mappedName, args);
+            }
+
+            console.log(`FigPal Bridge: Tool [${toolName}] executed successfully`);
+            figma.ui.postMessage({
+                type: 'tool-result',
+                id: id || toolCallId,
+                data: {
+                    toolCallId: toolCallId,
+                    result: result
+                }
+            });
+        } catch (err) {
+            console.error(`FigPal Bridge: Tool [${toolName}] failed:`, err.message);
+            figma.ui.postMessage({
+                type: 'tool-result',
+                id: id || toolCallId,
+                data: {
+                    toolCallId: toolCallId,
+                    error: err.message
+                }
+            });
+        }
+    }
+
     if (type === 'ai-request') {
         // Use provided credentials OR fallback to memory
         const { text, history, systemPrompt } = data;
@@ -849,3 +894,4 @@ function extractText(node) {
     }
     return text;
 }
+figma.ui.postMessage({ type: 'plugin-ready' });

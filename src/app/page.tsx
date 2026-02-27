@@ -569,7 +569,7 @@ export default function Home() {
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [figmaOAuth, setFigmaOAuth] = useState(false);
   const [input, setInput] = useState("");
-  const [selectedModel, setSelectedModel] = useState<"grok-4-1-fast-reasoning" | "grok-4-1-fast-non-reasoning">("grok-4-1-fast-non-reasoning");
+  const [selectedModel, setSelectedModel] = useState<"gemini-2.0-flash-thinking-exp-01-21" | "gemini-2.0-flash">("gemini-2.0-flash");
   const [selectedNode, setSelectedNode] = useState<string | null>(null);
   const [selectionGlow, setSelectionGlow] = useState(false);
   const [proxyModalOpen, setProxyModalOpen] = useState(false);
@@ -612,8 +612,9 @@ export default function Home() {
           }
         }
         if (event.data.type === 'plugin-ready' || event.data.type === 'plugin-status') {
-          console.log("[Bridge] Status update:", event.data.data?.connected);
-          setIsBridgeConnected(event.data.data?.connected ?? true);
+          const connected = event.data.connected ?? event.data.data?.connected ?? true;
+          console.log("[Bridge] Status update:", connected);
+          setIsBridgeConnected(connected);
         }
         if (event.data.type === 'tool-result') {
           const { toolCallId, result, error } = event.data.data;
@@ -681,7 +682,7 @@ export default function Home() {
           useBridge: isBridgeConnected // Explicitly signal bridge availability
         }),
       }),
-    [],
+    [isBridgeConnected],
   );
 
   const { messages, sendMessage, status, error, setMessages } = useChat({ transport });
@@ -1311,15 +1312,15 @@ export default function Home() {
             <div className="flex rounded-md overflow-hidden border border-white/10">
               <button
                 type="button"
-                onClick={() => setSelectedModel("grok-4-1-fast-reasoning")}
-                className={`px-3 py-1 text-xs transition-colors cursor-pointer ${selectedModel === "grok-4-1-fast-reasoning" ? "bg-blue-600 text-white" : "bg-white/5 text-white/50 hover:bg-white/10"}`}
+                onClick={() => setSelectedModel("gemini-2.0-flash-thinking-exp-01-21")}
+                className={`px-3 py-1 text-xs transition-colors cursor-pointer ${selectedModel === "gemini-2.0-flash-thinking-exp-01-21" ? "bg-blue-600 text-white" : "bg-white/5 text-white/50 hover:bg-white/10"}`}
               >
                 Reasoning
               </button>
               <button
                 type="button"
-                onClick={() => setSelectedModel("grok-4-1-fast-non-reasoning")}
-                className={`px-3 py-1 text-xs transition-colors cursor-pointer ${selectedModel === "grok-4-1-fast-non-reasoning" ? "bg-blue-600 text-white" : "bg-white/5 text-white/50 hover:bg-white/10"}`}
+                onClick={() => setSelectedModel("gemini-2.0-flash")}
+                className={`px-3 py-1 text-xs transition-colors cursor-pointer ${selectedModel === "gemini-2.0-flash" ? "bg-blue-600 text-white" : "bg-white/5 text-white/50 hover:bg-white/10"}`}
               >
                 Non-Reasoning
               </button>

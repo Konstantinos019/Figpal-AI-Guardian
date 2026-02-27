@@ -31,11 +31,11 @@ const BRIDGE_TOOLS = {
       required: ["code"]
     }
   },
-  get_selection_info: {
+  figma_get_selection_info: {
     description: "Get detailed information about the currently selected nodes in the Figma canvas.",
     parameters: { type: "object", properties: {} }
   },
-  create_rectangle: {
+  figma_create_rectangle: {
     description: "Create a new rectangle on the canvas.",
     parameters: {
       type: "object",
@@ -48,7 +48,7 @@ const BRIDGE_TOOLS = {
       required: ["width", "height"]
     }
   },
-  rename_node: {
+  figma_rename_node: {
     description: "Rename the currently selected node specifically.",
     parameters: {
       type: "object",
@@ -88,7 +88,7 @@ function createKeepaliveStream(
 
       const sendKeepalive = () => {
         if (!isMcpReady && controller.desiredSize !== null) {
-          controller.enqueue(encoder.encode(encodeSSEMessage("ping", { timestamp: Date.now() })));
+          controller.enqueue(encoder.encode(": keepalive\n\n"));
         }
       };
       keepaliveInterval = setInterval(sendKeepalive, STREAM_KEEPALIVE_MS);
@@ -128,7 +128,7 @@ function createKeepaliveStream(
         }
 
         const result = streamText({
-          model: google("gemini-1.5-pro"),
+          model: google(model || "gemini-2.0-flash"),
           system,
           messages: modelMessages,
           tools: combinedTools as any,

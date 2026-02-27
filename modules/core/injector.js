@@ -484,7 +484,69 @@
             }
         });
 
-        console.log('FigPal: Loaded successfully!');
+        // ─── Relay plugin events → Steverings iframe ─────────────────────
+        function getIframe() {
+            return document.getElementById('figpal-chat-iframe');
+        }
+
+        function relayToIframe(type, data) {
+            const iframe = getIframe();
+            if (iframe && iframe.contentWindow) {
+                iframe.contentWindow.postMessage({ source: 'figpal-extension', type, ...data }, '*');
+            }
+        }
+
+        // Forward plugin status
+        FP.on('plugin-status', (data) => {
+            relayToIframe('plugin-status', data);
+        });
+
+        // Forward selection changes
+        FP.on('selection-updated', (data) => {
+            const selection = data.nodes || data;
+            // Map to 'selectedNode' as expected by Steverings UI
+            relayToIframe('selection-change', {
+                selectedNode: (selection && selection.length > 0) ? selection[0] : null,
+                nodes: selection
+            });
+        });
+
+        // Forward design tokens
+        FP.on('tokens-updated', (data) => {
+            relayToIframe('tokens-updated', data);
+        });
+
+        // Forward any raw plugin messages
+        FP.on('plugin-message', (msg) => {
+            relayToIframe(msg.type || 'plugin-message', msg);
+        });
+
+        // ─── Listen for iframe → plugin commands ──────────────────────────
+        window.addEventListener('message', (event) => {
+            if (!event.data || event.data.source !== 'figpal-iframe') return;
+            const msg = event.data;
+
+            if (msg.type === 'ui-ready') {
+                console.log('FigPal: Steverings UI ready, syncing state...');
+                // Immediately send current status
+                relayToIframe('plugin-status', { connected: FP.state.pluginConnected || false });
+                // Immediately send current selection
+                const selection = FP.state.pluginSelection || [];
+                relayToIframe('selection-change', {
+                    selectedNode: (selection && selection.length > 0) ? selection[0] : null,
+                    nodes: selection
+                });
+                return;
+            }
+
+            // Forward iframe commands to the plugin bridge
+            if (FP.bridge && FP.bridge.send) {
+                FP.bridge.send(msg);
+            } else if (FP.pluginBridge && FP.pluginBridge.send) {
+                FP.pluginBridge.send(msg);
+            }
+        });
+
     }
 
     // ─── UI Wiring Helpers ───────────────────────────────────────────────

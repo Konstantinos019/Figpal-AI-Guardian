@@ -20,6 +20,7 @@
                 // Auto-connect if we see a valid message from the plugin
                 if (!this.isConnected) {
                     this.isConnected = true;
+                    FP.state.pluginConnected = true;
                     console.log('FigPal Bridge: Connection recovered via traffic 🔌');
                     FP.emit('plugin-status', { connected: true });
                 }
@@ -30,85 +31,76 @@
                 // Capture the plugin's window reference to send messages back
                 if (event.source && event.source !== window && !this.pluginWindow) {
                     this.pluginWindow = event.source;
-                    // Only log latching once to avoid spam
-                    // console.log('FigPal Bridge: Latched onto plugin source.');
                 }
 
-                if (msg.type === 'pong') {
-                    // Just a heartbeat response, logic above handled timestamp update
-                    return;
-                } else if (msg.type === 'plugin-ready') {
-                    this.isConnected = true;
-                    console.log('FigPal Bridge: Plugin signaled ready.');
-                    this.sendHandshake();
-                    FP.emit('plugin-status', { connected: true });
-                } else if (msg.type === 'response' || msg.type === 'EXECUTE_CODE_RESULT') {
-                    // Match request ID (plugin uses requestId, we used to use id)
-                    const reqId = msg.requestId || msg.id;
-                    const resolve = this.pendingRequests.get(reqId);
-                    if (resolve) {
-                        if (msg.type === 'EXECUTE_CODE_RESULT') {
-                            if (msg.success) {
-                                resolve({ success: true, result: msg.result, analysis: msg.resultAnalysis });
+                try {
+                    if (msg.type === 'pong') {
+                        // Heartbeat response handled by timestamp update
+                    } else if (msg.type === 'plugin-ready') {
+                        this.isConnected = true;
+                        FP.state.pluginConnected = true;
+                        console.log('FigPal Bridge: Plugin signaled ready.');
+                        this.sendHandshake();
+                        FP.emit('plugin-status', { connected: true });
+                    } else if (msg.type === 'response' || msg.type === 'EXECUTE_CODE_RESULT' || msg.type === 'tool-result') {
+                        // Match request ID
+                        const reqId = msg.requestId || msg.id;
+                        const resolve = this.pendingRequests.get(reqId);
+                        if (resolve) {
+                            if (msg.type === 'EXECUTE_CODE_RESULT') {
+                                if (msg.success) {
+                                    resolve({ success: true, result: msg.result, analysis: msg.resultAnalysis });
+                                } else {
+                                    resolve({ success: false, error: msg.error || 'Unknown plugin error' });
+                                }
                             } else {
-                                console.error('FigPal Bridge: Code execution failed side-effect:', msg.error);
-                                resolve({ success: false, error: msg.error || 'Unknown plugin error during execution' });
+                                resolve(msg.data || msg);
                             }
-                        } else {
-                            resolve(msg.data);
+                            this.pendingRequests.delete(reqId);
                         }
-                        this.pendingRequests.delete(reqId);
+                    } else if (msg.type === 'selection-changed') {
+                        const selectionData = msg.data;
+                        const nodes = selectionData.nodes || (Array.isArray(selectionData) ? selectionData : []);
+                        FP.state.pluginSelection = nodes;
+                        FP.state.selectionImage = selectionData.image || null;
+                        if (nodes.length > 0 && nodes[0].id) {
+                            FP.state.selectedNodeId = nodes[0].id;
+                        }
+                        FP.emit('selection-updated', selectionData);
+                    } else if (msg.type === 'request-credentials') {
+                        FP.emit('credentials-requested');
+                    } else if (msg.type === 'auth-success') {
+                        FP.emit('auth-success');
+                    } else if (msg.type === 'CONSOLE_CAPTURE') {
+                        const { level = 'log', message, args = [] } = msg;
+                        const safeLevel = (typeof console[level] === 'function') ? level : 'log';
+                        console[safeLevel](`[Figma Plugin]`, message, ...args);
+                        FP.emit('plugin-console', msg);
+                    } else if (msg.type === 'VARIABLES_DATA') {
+                        FP.state.designTokens = msg.data;
+                        FP.emit('tokens-updated', msg.data);
+                        const reqId = msg.requestId || msg.id;
+                        if (reqId && this.pendingRequests.has(reqId)) {
+                            this.pendingRequests.get(reqId)(msg.data);
+                            this.pendingRequests.delete(reqId);
+                        }
                     }
-                } else if (msg.type === 'selection-changed') {
-                    // ... (rest is same)
-                    const selectionData = msg.data;
-                    const nodes = selectionData.nodes || (Array.isArray(selectionData) ? selectionData : []);
-                    FP.state.pluginSelection = nodes;
-                    FP.state.selectionImage = selectionData.image || null;
 
-                    // Sync the global selection ID for write operations
-                    if (nodes.length > 0 && nodes[0].id) {
-                        FP.state.selectedNodeId = nodes[0].id;
-                    }
-
-                    console.log('FigPal Bridge: Captured selection change', nodes.length, 'nodes');
-
-                    FP.emit('selection-updated', selectionData);
-                } else if (msg.type === 'request-credentials') {
-                    console.log('FigPal Bridge: Plugin requested credentials.');
-                    FP.emit('credentials-requested');
-                } else if (msg.type === 'auth-success') {
-                    console.log('FigPal Bridge: Plugin authenticated.');
-                    FP.emit('auth-success');
-                } else if (msg.type === 'CONSOLE_CAPTURE') {
-                    // Forward plugin console to extension console for debugging
-                    const { level = 'log', message, args = [], timestamp } = msg;
-                    const safeLevel = (typeof console[level] === 'function') ? level : 'log';
-                    const prefix = `[Figma Plugin ${safeLevel.toUpperCase()}]`;
-                    console[safeLevel](prefix, message, ...args);
-                    FP.emit('plugin-console', msg);
-                } else if (msg.type === 'VARIABLES_DATA') {
-                    console.log('FigPal Bridge: Received Design Tokens (variables)');
-                    FP.state.designTokens = msg.data;
-                    FP.emit('tokens-updated', msg.data);
-
-                    // Resolve any pending request
-                    const reqId = msg.requestId || msg.id;
-                    if (reqId && this.pendingRequests.has(reqId)) {
-                        this.pendingRequests.get(reqId)(msg.data);
-                        this.pendingRequests.delete(reqId);
-                    }
+                    // CATCH-ALL: Emit as event so injector.js can relay any message type to iframe
+                    FP.emit('plugin-message', msg);
+                } catch (err) {
+                    console.warn('FigPal Bridge: Message relay error', err);
                 }
             });
 
-            // ... (init loop remains same)
-
             // Proactive handshake attempt & Heartbeat check
+            const HEARTBEAT_INTERVAL = 3000;
+            const HEARTBEAT_TIMEOUT = 10000;
+
             setInterval(() => {
                 const now = Date.now();
 
                 // 1. Handshake if not connected
-                // Throttle the heavy DOM scan to every 5s if disconnected
                 if (!this.isConnected) {
                     if (now - this.lastScanTime > 5000) {
                         this.sendHandshake();
@@ -117,19 +109,19 @@
                 }
 
                 // 2. Heartbeat Check
-                // If we were connected, but haven't heard from plugin in > 5s, assume disconnected
-                if (this.isConnected && (now - this.lastHeartbeat > 5000)) {
-                    console.warn('FigPal Bridge: Heartbeat lost (timeout). Marking disconnected.');
+                if (this.isConnected && (now - this.lastHeartbeat > HEARTBEAT_TIMEOUT)) {
+                    console.warn('FigPal Bridge: Heartbeat lost (timeout).marking disconnected.');
                     this.isConnected = false;
-                    this.pluginWindow = null; // Reset reference
+                    FP.state.pluginConnected = false;
+                    this.pluginWindow = null;
                     FP.emit('plugin-status', { connected: false });
                 }
 
-                // 3. Send Ping (if we think we are connected)
+                // 3. Send Ping
                 if (this.isConnected) {
                     this.sendToPlugin({ source: 'figpal-extension', type: 'ping' });
                 }
-            }, 1000); // Check faster (1s) for responsive status, but throttle scan
+            }, HEARTBEAT_INTERVAL);
 
             console.log('FigPal: Plugin bridge initialized.');
         },
@@ -256,6 +248,10 @@
             if (!this.isConnected) return null;
             if (!refresh && FP.state.designTokens) return FP.state.designTokens;
             return this.request('GET_VARIABLES');
+        },
+
+        send(msg) {
+            this.sendToPlugin(msg);
         }
     };
 
