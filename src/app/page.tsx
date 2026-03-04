@@ -1,7 +1,28 @@
 "use client";
 
 import { useChat } from "@ai-sdk/react";
-import { DefaultChatTransport } from "ai";
+import { DefaultChatTransport, type UIMessage } from "ai";
+
+// Triggers automatic re-submission when all pending (client-side) tool calls have results.
+// AI SDK v6: without this, addToolResult updates state but AI never continues.
+function allToolCallsHaveResults({ messages }: { messages: UIMessage[] }) {
+  const last = messages[messages.length - 1];
+  if (!last || last.role !== "assistant") return false;
+
+  const toolParts = last.parts.filter(
+    (p: any) => (p.type?.startsWith("tool-") || p.type === "dynamic-tool") && !p.providerExecuted
+  );
+
+  if (toolParts.length === 0) return false;
+
+  const allFinished = toolParts.every(
+    (p: any) => p.state === "output-available" || p.state === "output-error"
+  );
+
+  console.log(`[Bridge] allToolCallsHaveResults check: ${allFinished} (${toolParts.length} tools)`);
+
+  return allFinished;
+}
 import { useState, useRef, useEffect, useMemo } from "react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
@@ -578,6 +599,8 @@ export default function Home() {
   const [localFigmaMcpUrl, setLocalFigmaMcpUrl] = useState(process.env.NEXT_PUBLIC_LOCAL_MCP_FIGMA_URL || "");
   const [localCodeMcpUrl, setLocalCodeMcpUrl] = useState(process.env.NEXT_PUBLIC_LOCAL_MCP_CODE_URL || "");
   const [isBridgeConnected, setIsBridgeConnected] = useState(false);
+  const isBridgeConnectedRef = useRef(isBridgeConnected);
+  isBridgeConnectedRef.current = isBridgeConnected;
   const [showConnectors, setShowConnectors] = useState(true);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
@@ -602,6 +625,8 @@ export default function Home() {
   localFigmaMcpUrlRef.current = localFigmaMcpUrl;
   const localCodeMcpUrlRef = useRef(localCodeMcpUrl);
   localCodeMcpUrlRef.current = localCodeMcpUrl;
+  // Forward-ref so the message listener can call addToolResult before useChat is declared
+  const addToolResultRef = useRef<((args: any) => void)>(() => { });
 
   // Load persistence for showConnectors
   useEffect(() => {
@@ -619,6 +644,10 @@ export default function Home() {
   useEffect(() => {
     const handleMessage = (event: MessageEvent) => {
       if (event.data && typeof event.data === "object") {
+        // Accept both extension relay and direct plugin messages (for flexibility)
+        const isFromBridge = event.data.source === 'figpal-extension' || event.data.source === 'figpal-plugin';
+        if (!isFromBridge && !event.data.type && !event.data.selectedNode) return;
+
         if ("selectedNode" in event.data) {
           const url = event.data.selectedNode;
           if (typeof url === "string" || url === null) {
@@ -630,32 +659,22 @@ export default function Home() {
           console.log("[Bridge] Status update:", connected);
           setIsBridgeConnected(connected);
         }
-        if (event.data.type === 'tool-result') {
-          const { toolCallId, result, error } = event.data.data;
-          console.log("[Bridge] Tool result received:", toolCallId, result);
-          setMessages(prev => prev.map(m => ({
-            ...m,
-            parts: m.parts?.map(part => {
-              const p = part as any;
-              if (p.toolCallId === toolCallId) {
-                return {
-                  ...p,
-                  state: error ? 'output-error' : 'output-available',
-                  output: result,
-                  errorText: error
-                };
-              }
-              return part;
-            })
-          })));
+        // Tool result from Figma plugin — feed back into AI stream via addToolResult
+        if (event.data.type === 'tool-result' && event.data.data) {
+          const { toolCallId, result, error: toolError } = event.data.data;
+          console.log("[Bridge] ✅ Tool result received:", toolCallId, result);
+          if (toolCallId) {
+            // Use forward-ref so declaration order doesn't matter (useChat declared below)
+            addToolResultRef.current({ toolCallId, output: toolError ? { error: toolError } : (result ?? { status: 'done' }) });
+          }
         }
       }
     };
     window.addEventListener("message", handleMessage);
 
-    // Initial handshake
-    console.log("[Bridge] Sending ui-ready");
-    window.parent.postMessage({ source: 'figpal-iframe', type: 'ui-ready' }, '*');
+    // Initial handshake — use 'figpal-extension' source so ui.html's onmessage accepts it
+    console.log("[Bridge] Sending plugin-handshake");
+    window.parent.postMessage({ source: 'figpal-extension', type: 'handshake-ack' }, '*');
 
     return () => window.removeEventListener("message", handleMessage);
   }, []);
@@ -693,13 +712,22 @@ export default function Home() {
           model: selectedModelRef.current,
           selectedNode: selectedNodeRef.current,
           tunnelSecret: tunnelSecretRef.current,
-          useBridge: isBridgeConnected // Explicitly signal bridge availability
+          useBridge: isBridgeConnectedRef.current // Use ref to ensure latest value
         }),
       }),
     [isBridgeConnected],
   );
 
-  const { messages, sendMessage, status, error, setMessages } = useChat({ transport });
+  const { messages, sendMessage, status, error, setMessages, addToolResult, addToolOutput } = useChat({
+    transport,
+    // CRITICAL: tells the SDK to automatically re-send the conversation to the server
+    // once all pending client-side tool calls have results from the Figma plugin.
+    // Without this, addToolResult() updates local state but the stream never resumes.
+    sendAutomaticallyWhen: allToolCallsHaveResults,
+  });
+  // Wire addToolOutput into the forward-ref so the message listener (declared above) can call it.
+  // addToolOutput is the v6 name; addToolResult is the deprecated alias — both work.
+  addToolResultRef.current = (addToolOutput ?? addToolResult) as any;
 
   const isLoading = status === "submitted" || status === "streaming";
 
@@ -731,38 +759,39 @@ export default function Home() {
   }, [messages]);
 
   // Bridge Tool Call Interceptor
+  // When the AI calls a figma_* tool, this forwards it to the Figma plugin (code.js)
+  // via postMessage → ui.html → code.js, then feeds the real result back via addToolResult.
   const processedToolCalls = useRef<Set<string>>(new Set());
 
   useEffect(() => {
     const lastMessage = messages[messages.length - 1];
     if (!lastMessage || lastMessage.role !== 'assistant') return;
 
-    lastMessage.parts?.forEach((part, index) => {
-      if (part.type === 'dynamic-tool' || part.type?.startsWith('tool-')) {
-        const p = part as any;
-        const toolCallId = p.toolCallId;
+    lastMessage.parts?.forEach((part) => {
+      // AI SDK v6: tool parts have type 'tool-{toolName}' with state 'input-available'
+      if (!part.type?.startsWith('tool-')) return;
+      const p = part as any;
+      const toolCallId = p.toolCallId;
+      const toolName = part.type.replace('tool-', '');
 
-        if (p.state === 'input-available' && toolCallId && !processedToolCalls.current.has(toolCallId)) {
-          const toolName = part.type === 'dynamic-tool' ? p.toolName : part.type.replace('tool-', '');
+      if (p.state === 'input-available' && toolCallId && !processedToolCalls.current.has(toolCallId)) {
+        // Only intercept Figma bridge tools
+        const isBridgeTool = toolName.startsWith('figma_');
 
-          // Check if this is a tool that should be executed via the bridge
-          const isBridgeTool = toolName.startsWith('figma_') ||
-            ['get_selection_info', 'create_rectangle', 'rename_node'].includes(toolName);
+        if (isBridgeTool) {
+          console.log("[Bridge] 🚀 Forwarding to Figma plugin:", toolName, toolCallId);
+          processedToolCalls.current.add(toolCallId);
 
-          if (isBridgeTool) {
-            console.log("[Bridge] Intercepted bridge tool:", toolName, toolCallId);
-            processedToolCalls.current.add(toolCallId);
-
-            window.parent.postMessage({
-              source: 'figpal-iframe',
-              type: 'execute-tool',
-              data: {
-                toolName,
-                args: p.input,
-                toolCallId
-              }
-            }, '*');
-          }
+          // Use 'figpal-extension' source — ui.html only forwards messages with that source
+          window.parent.postMessage({
+            source: 'figpal-extension',
+            type: 'execute-tool',
+            data: {
+              toolName,
+              args: p.input,
+              toolCallId
+            }
+          }, '*');
         }
       }
     });
@@ -857,100 +886,104 @@ export default function Home() {
               </div>
             </div>
 
-            <div>
-              <div className="flex items-center justify-between mb-1">
-                <label className="block text-xs text-white/50">
-                  Figma MCP URL
-                </label>
-                <button
-                  onClick={() => setProxyModalOpen(true)}
-                  title="Configure a local proxy"
-                  className="text-[10px] px-2 py-0.5 bg-white/10 hover:bg-white/20 text-white/60 hover:text-white/80 rounded transition-colors cursor-pointer"
-                >
-                  Configure proxy
-                </button>
-              </div>
-              <input
-                type="url"
-                value={figmaOAuth ? "https://mcp.figma.com/mcp" : figmaMcpUrl}
-                onChange={(e) => setFigmaMcpUrl(e.target.value)}
-                placeholder="http://127.0.0.1:3845/mcp"
-                disabled={figmaOAuth}
-                className="w-full bg-white/5 border border-white/10 rounded-md px-3 py-2 text-sm text-white placeholder:text-white/20 focus:outline-none focus:border-white/30 disabled:opacity-50 disabled:cursor-not-allowed"
-              />
-              <div className="flex items-center gap-1.5 mt-1.5">
-                <div
-                  className={`w-1.5 h-1.5 rounded-full ${figmaConnected ? "bg-emerald-400" : "bg-white/20"}`}
-                />
-                <span className={`text-xs ${figmaMode.color}`}>
-                  {figmaConnected ? figmaMode.label : "Not configured"}
-                </span>
-              </div>
-            </div>
-
-            <div>
-              <label className="block text-xs text-white/50 mb-1">
-                Figma Authentication
-              </label>
-              {figmaOAuth ? (
-                <div className="flex items-center gap-2">
-                  <div className="flex-1 flex items-center gap-1.5 bg-emerald-500/10 border border-emerald-500/20 rounded-md px-3 py-2">
-                    <div className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
-                    <span className="text-xs text-emerald-300">Connected via OAuth</span>
+            {!isBridgeConnected && (
+              <>
+                <div>
+                  <div className="flex items-center justify-between mb-1">
+                    <label className="block text-xs text-white/50">
+                      Figma MCP URL
+                    </label>
+                    <button
+                      onClick={() => setProxyModalOpen(true)}
+                      title="Configure a local proxy"
+                      className="text-[10px] px-2 py-0.5 bg-white/10 hover:bg-white/20 text-white/60 hover:text-white/80 rounded transition-colors cursor-pointer"
+                    >
+                      Configure proxy
+                    </button>
                   </div>
-                  <button
-                    onClick={() => {
-                      fetch("/api/auth/figma-mcp/status", {
-                        method: "DELETE",
-                        headers: {
-                          "X-Auth-Token": tunnelSecret || "",
-                        },
-                      }).then(() => setFigmaOAuth(false));
-                    }}
-                    className="px-2 py-2 text-xs text-red-400 hover:bg-red-500/10 rounded-md transition-colors cursor-pointer"
-                  >
-                    Disconnect
-                  </button>
+                  <input
+                    type="url"
+                    value={figmaOAuth ? "https://mcp.figma.com/mcp" : figmaMcpUrl}
+                    onChange={(e) => setFigmaMcpUrl(e.target.value)}
+                    placeholder="http://127.0.0.1:3845/mcp"
+                    disabled={figmaOAuth}
+                    className="w-full bg-white/5 border border-white/10 rounded-md px-3 py-2 text-sm text-white placeholder:text-white/20 focus:outline-none focus:border-white/30 disabled:opacity-50 disabled:cursor-not-allowed"
+                  />
+                  <div className="flex items-center gap-1.5 mt-1.5">
+                    <div
+                      className={`w-1.5 h-1.5 rounded-full ${figmaConnected ? "bg-emerald-400" : "bg-white/20"}`}
+                    />
+                    <span className={`text-xs ${figmaMode.color}`}>
+                      {figmaConnected ? figmaMode.label : "Not configured"}
+                    </span>
+                  </div>
                 </div>
-              ) : (
-                <button
-                  disabled={true}
-                  title="OAuth is currently disabled Due to limitation of Figma MCP server"
-                  onClick={async () => {
-                    // Set auth token cookie before OAuth redirect
-                    if (tunnelSecret) {
-                      try {
-                        await fetch("/api/auth/set-token", {
-                          method: "POST",
-                          headers: { "Content-Type": "application/json" },
-                          body: JSON.stringify({ token: tunnelSecret }),
-                        });
-                      } catch (e) {
-                        console.error("[Figma] Failed to set auth cookie:", e);
-                        return;
-                      }
-                    }
 
-                    // Attempt Dynamic Client Registration first (required for mcp:connect scope)
-                    try {
-                      const res = await fetch("/api/auth/figma-mcp/register", { method: "POST" });
-                      if (res.ok) {
-                        console.log("[Figma] DCR successful, proceeding with MCP OAuth");
-                      } else {
-                        console.warn("[Figma] DCR failed (status", res.status, "), falling back to standard OAuth");
-                      }
-                    } catch (e) {
-                      console.warn("[Figma] DCR request failed, falling back to standard OAuth:", e);
-                    }
-                    // Redirect to the auth flow (will use DCR client if available, else fallback)
-                    window.location.href = "/api/auth/figma-mcp";
-                  }}
-                  className="block w-full text-center bg-[#a259ff]/20 border border-[#a259ff]/30 hover:bg-[#a259ff]/30 rounded-md px-3 py-2 text-sm text-[#a259ff] transition-colors cursor-pointer"
-                >
-                  Sign in with Figma
-                </button>
-              )}
-            </div>
+                <div>
+                  <label className="block text-xs text-white/50 mb-1">
+                    Figma Authentication
+                  </label>
+                  {figmaOAuth ? (
+                    <div className="flex items-center gap-2">
+                      <div className="flex-1 flex items-center gap-1.5 bg-emerald-500/10 border border-emerald-500/20 rounded-md px-3 py-2">
+                        <div className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
+                        <span className="text-xs text-emerald-300">Connected via OAuth</span>
+                      </div>
+                      <button
+                        onClick={() => {
+                          fetch("/api/auth/figma-mcp/status", {
+                            method: "DELETE",
+                            headers: {
+                              "X-Auth-Token": tunnelSecret || "",
+                            },
+                          }).then(() => setFigmaOAuth(false));
+                        }}
+                        className="px-2 py-2 text-xs text-red-400 hover:bg-red-500/10 rounded-md transition-colors cursor-pointer"
+                      >
+                        Disconnect
+                      </button>
+                    </div>
+                  ) : (
+                    <button
+                      disabled={true}
+                      title="OAuth is currently disabled Due to limitation of Figma MCP server"
+                      onClick={async () => {
+                        // Set auth token cookie before OAuth redirect
+                        if (tunnelSecret) {
+                          try {
+                            await fetch("/api/auth/set-token", {
+                              method: "POST",
+                              headers: { "Content-Type": "application/json" },
+                              body: JSON.stringify({ token: tunnelSecret }),
+                            });
+                          } catch (e) {
+                            console.error("[Figma] Failed to set auth cookie:", e);
+                            return;
+                          }
+                        }
+
+                        // Attempt Dynamic Client Registration first (required for mcp:connect scope)
+                        try {
+                          const res = await fetch("/api/auth/figma-mcp/register", { method: "POST" });
+                          if (res.ok) {
+                            console.log("[Figma] DCR successful, proceeding with MCP OAuth");
+                          } else {
+                            console.warn("[Figma] DCR failed (status", res.status, "), falling back to standard OAuth");
+                          }
+                        } catch (e) {
+                          console.warn("[Figma] DCR request failed, falling back to standard OAuth:", e);
+                        }
+                        // Redirect to the auth flow (will use DCR client if available, else fallback)
+                        window.location.href = "/api/auth/figma-mcp";
+                      }}
+                      className="block w-full text-center bg-[#a259ff]/20 border border-[#a259ff]/30 hover:bg-[#a259ff]/30 rounded-md px-3 py-2 text-sm text-[#a259ff] transition-colors cursor-pointer"
+                    >
+                      Sign in with Figma
+                    </button>
+                  )}
+                </div>
+              </>
+            )}
 
             {/*  <div>
               <label className="block text-xs text-white/50 mb-1">
@@ -968,26 +1001,28 @@ export default function Home() {
               </span>
             </div> */}
 
-            <div>
-              <label className="block text-xs text-white/50 mb-1">
-                Code Editor MCP Url
-              </label>
-              <input
-                type="text"
-                value={codeProjectPath}
-                onChange={(e) => setCodeProjectPath(e.target.value)}
-                placeholder="http://127.0.0.1:3846/sse"
-                className="w-full bg-white/5 border border-white/10 rounded-md px-3 py-2 text-sm text-white placeholder:text-white/20 focus:outline-none focus:border-white/30"
-              />
-              <div className="flex items-center gap-1.5 mt-1.5">
-                <div
-                  className={`w-1.5 h-1.5 rounded-full ${codeConnected ? "bg-emerald-400" : "bg-white/20"}`}
+            {!isBridgeConnected && (
+              <div>
+                <label className="block text-xs text-white/50 mb-1">
+                  Code Editor MCP Url
+                </label>
+                <input
+                  type="text"
+                  value={codeProjectPath}
+                  onChange={(e) => setCodeProjectPath(e.target.value)}
+                  placeholder="http://127.0.0.1:3846/sse"
+                  className="w-full bg-white/5 border border-white/10 rounded-md px-3 py-2 text-sm text-white placeholder:text-white/20 focus:outline-none focus:border-white/30"
                 />
-                <span className={`text-xs ${codeMode.color}`}>
-                  {codeConnected ? codeMode.label : "Not configured"}
-                </span>
+                <div className="flex items-center gap-1.5 mt-1.5">
+                  <div
+                    className={`w-1.5 h-1.5 rounded-full ${codeConnected ? "bg-emerald-400" : "bg-white/20"}`}
+                  />
+                  <span className={`text-xs ${codeMode.color}`}>
+                    {codeConnected ? codeMode.label : "Not configured"}
+                  </span>
+                </div>
               </div>
-            </div>
+            )}
           </div>
 
           <div className="mt-6 p-3 bg-white/5 rounded-md">

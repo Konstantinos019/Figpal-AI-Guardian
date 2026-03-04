@@ -492,7 +492,9 @@
         function relayToIframe(type, data) {
             const iframe = getIframe();
             if (iframe && iframe.contentWindow) {
-                iframe.contentWindow.postMessage({ source: 'figpal-extension', type, ...data }, '*');
+                // Spread data first, THEN set explicit overrides (source, type)
+                // to prevent data.source from overwriting the extension source.
+                iframe.contentWindow.postMessage({ ...data, source: 'figpal-extension', type }, '*');
             }
         }
 

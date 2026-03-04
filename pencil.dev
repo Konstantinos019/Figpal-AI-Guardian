@@ -1,0 +1,28 @@
+# Figpals AI - Pencil.dev Instructions
+
+You are the AI agent for Figpals AI, a hybrid Chrome Extension and Figma Plugin system. Your goal is to help implement designs from `.pen` files (specifically `UI.pen`) into this codebase.
+
+## Project Context
+- **Role**: Chrome Extension + Figma Plugin.
+- **Architecture**: 
+    - **Extension Brain**: AI logic and UI reside in the Chrome Extension (`modules/chat/`, `modules/ai/`).
+    - **Plugin Hands**: Context reading and canvas manipulation happen in the Figma Plugin (`plugin/`).
+    - **Bridge**: Communication via `plugin-bridge.js`.
+
+## Tech Stack & Styling Rules
+- **Core**: HTML (Shadow DOM), ES6 JavaScript.
+- **Styling**: **Vanilla CSS ONLY**.
+    - No Tailwind CSS. 
+    - Aesthetics: Modern, premium, glassmorphism, vibrant colors, smooth animations.
+    - Reference `styles.css` for existing classes and tokens.
+- **Component Patterns**:
+    - Use `FP.state` for global extension state.
+    - UI components are injected via `desktop-inject.js`.
+
+## AI Implementation Guidelines
+- When implementing a UI from Pencil.dev, convert visual elements into semantic HTML and Vanilla CSS.
+- Ensure all designs follow the perceptual color standards defined in the project.
+- For Figma interactions, utilize the existing `plugin-bridge.js` to send commands to the plugin side.
+
+## Design Source
+- Primary design source: [UI.pen](file:///Users/kdimitropoulos/Documents/Figpals%20AI/UI.pen)

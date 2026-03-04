@@ -89,14 +89,14 @@ const TOOLS = [
     },
     {
         name: "rename_node",
-        description: "Rename the currently selected node specifically.",
+        description: "Rename a specific node or the currently selected node.",
         parameters: {
             type: "object",
             properties: {
                 id: { type: "string", description: "The ID of the node to rename (optional, defaults to selection)" },
-                name: { type: "string", description: "The new name for the layer" }
+                newName: { type: "string", description: "The new name for the layer" }
             },
-            required: ["name"]
+            required: ["newName"]
         }
     },
     {
@@ -129,7 +129,19 @@ const TOOLS = [
         description: "Get detailed information about the currently selected nodes.",
         parameters: {
             type: "object",
-            properties: {}
+            properties: {
+                refresh: { type: "boolean", description: "Optional refresh flag" }
+            }
+        }
+    },
+    {
+        name: "get_design_context",
+        description: "Get a comprehensive overview of the current design context, including current page, selection, and document hierarchy info.",
+        parameters: {
+            type: "object",
+            properties: {
+                depth: { type: "number", description: "Depth of hierarchy to fetch (default 1)" }
+            }
         }
     }
 ];
@@ -666,7 +678,12 @@ async function executeTool(name, args) {
         figma.currentPage.selection = [rect];
         return `Created rectangle "${rect.name}"`;
     }
-    return "Unknown tool";
+    if (name === 'get_selection_info') {
+        const selection = figma.currentPage.selection;
+        console.log(`FigPal: Serving selection info for ${selection.length} nodes`);
+        return selection.map(n => simplifyNode(n));
+    }
+    return "Unknown tool: " + name;
 }
 
 async function askAI({ provider, apiKey, model, history, systemPrompt, userMessage, tools }) {

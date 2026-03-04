@@ -1,5 +1,5 @@
 import { google } from "@ai-sdk/google";
-import { streamText, stepCountIs, convertToModelMessages } from "ai";
+import { streamText, stepCountIs, convertToModelMessages, tool, jsonSchema } from "ai";
 import { createMCPClient, type MCPClient } from "@ai-sdk/mcp";
 import { GUARDIAN_SYSTEM_PROMPT } from "@/lib/system-prompt";
 import { cookies } from "next/headers";
@@ -19,46 +19,101 @@ const MAX_AGE_MS = 2 * 60_000;
 const HEALTHCHECK_TIMEOUT_MS = 5_000;
 const STREAM_KEEPALIVE_MS = 5_000;
 
-// Figma Bridge tools that should be executed client-side
-const BRIDGE_TOOLS = {
+// Figma Bridge tools — CLIENT-SIDE tools that the plugin executes.
+// AI SDK v6: tools WITHOUT an `execute` function are "client-side tools".
+// streamText pauses on them and emits a pending tool-call part with state='input-available'.
+// The browser (page.tsx) intercepts via postMessage → Figma plugin → real Figma API → addToolResult().
+// CRITICAL: DO NOT add execute() here — that would make the AI SDK run them server-side
+// (returning fake data) and the client would never get to intercept.
+// `inputSchema: jsonSchema({...})` is required (AI SDK v6 renamed parameters → inputSchema).
+const BRIDGE_TOOLS: Record<string, any> = {
   figma_execute: {
-    description: "POWER TOOL: Execute arbitrary JavaScript using the Figma Plugin API. Use this for complex layouts, batch operations, or creating design system components from scratch.",
-    parameters: {
+    description: "POWER TOOL: Execute arbitrary JavaScript in the Figma Plugin sandbox. Has full access to the Figma API (figma.currentPage, figma.createRectangle, etc). Use for any design manipulation: creating nodes, changing styles, reading properties, or complex batch operations.",
+    inputSchema: jsonSchema({
       type: "object",
       properties: {
-        code: { type: "string", description: "The JavaScript code to execute. Can use async/await. Has access to the 'figma' global." },
+        code: { type: "string", description: "JavaScript to execute. Can use async/await. Access the 'figma' global for all Figma API calls." }
       },
       required: ["code"]
-    }
+    })
   },
   figma_get_selection_info: {
-    description: "Get detailed information about the currently selected nodes in the Figma canvas.",
-    parameters: { type: "object", properties: {} }
+    description: "Get detailed JSON information about the currently selected nodes in Figma (names, types, fills, dimensions, etc).",
+    inputSchema: jsonSchema({
+      type: "object",
+      properties: {
+        refresh: { type: "boolean", description: "Force a fresh fetch (optional)" }
+      }
+    })
+  },
+  figma_get_design_context: {
+    description: "Get a comprehensive overview of the Figma canvas: current page, full selection tree, and document hierarchy.",
+    inputSchema: jsonSchema({
+      type: "object",
+      properties: {
+        depth: { type: "number", description: "Depth of hierarchy to fetch (default 1)" }
+      }
+    })
   },
   figma_create_rectangle: {
-    description: "Create a new rectangle on the canvas.",
-    parameters: {
+    description: "Create a new rectangle on the Figma canvas.",
+    inputSchema: jsonSchema({
       type: "object",
       properties: {
         name: { type: "string", description: "Name of the rectangle" },
         width: { type: "number", description: "Width in pixels" },
         height: { type: "number", description: "Height in pixels" },
-        color: { type: "string", description: "Hex color (optional)" }
+        color: { type: "string", description: "Hex fill color (optional, e.g. #FF0000)" }
       },
       required: ["width", "height"]
-    }
+    })
   },
   figma_rename_node: {
-    description: "Rename the currently selected node specifically.",
-    parameters: {
+    description: "Rename a node by ID, or rename the currently selected node if no ID given.",
+    inputSchema: jsonSchema({
       type: "object",
       properties: {
-        name: { type: "string", description: "The new name for the layer" }
+        id: { type: "string", description: "Node ID to rename (optional, defaults to current selection)" },
+        newName: { type: "string", description: "New name for the node" }
       },
-      required: ["name"]
-    }
+      required: ["newName"]
+    })
+  },
+  figma_change_fill_color: {
+    description: "Change the fill color of the currently selected node.",
+    inputSchema: jsonSchema({
+      type: "object",
+      properties: {
+        hex: { type: "string", description: "Hex color code (e.g. #FF0000)" }
+      },
+      required: ["hex"]
+    })
   }
 };
+
+/**
+ * Gemini strictly requires every tool's parameters schema to be
+ * { type: "object", properties: { ... } }.
+ * MCP servers can return tools with null/undefined/empty schemas.
+ * This function normalises them so Gemini never sees a bad schema.
+ */
+function sanitizeToolSchema(t: any): any {
+  // AI SDK v6: tools use `inputSchema` (not `parameters`)
+  // MCP tools from @ai-sdk/mcp arrive with inputSchema already set as a jsonSchema() wrapper
+  // Check if inputSchema is valid — if it has a .jsonSchema property it's already good
+  const schema = t?.inputSchema;
+  if (schema && typeof schema === 'object' && (schema.jsonSchema || schema.type === 'object')) return t;
+  // Missing or invalid → inject a safe empty schema using jsonSchema() wrapper
+  return {
+    ...t,
+    inputSchema: jsonSchema({
+      type: 'object',
+      properties: schema?.properties && typeof schema.properties === 'object'
+        ? schema.properties
+        : {}
+    })
+  };
+}
 
 function encodeSSEMessage(type: string, data: Record<string, unknown>): string {
   return `data: ${JSON.stringify({ type, ...data })}\n\n`;
@@ -122,10 +177,37 @@ function createKeepaliveStream(
           controller.enqueue(encoder.encode(encodeSSEMessage("text-end", { id: errorId })));
         }
 
-        const combinedTools = { ...mcpResult.allTools };
+        // Merge tools, prioritizing Bridge for Figma if it's active
+        const combinedTools: Record<string, any> = { ...mcpResult.allTools };
         if (useBridge) {
+          console.log("[Chat] Enforcing Bridge-only mode for Figma tools");
+          // Aggressively purge any figma_* tools from MCP to ensure only Bridge versions are used
+          Object.keys(combinedTools).forEach(key => {
+            if (key.startsWith('figma_')) {
+              delete combinedTools[key];
+            }
+          });
           Object.assign(combinedTools, BRIDGE_TOOLS);
+        } else {
+          // Fallback: merge bridge tools but let MCP take precedence
+          Object.assign(combinedTools, {
+            ...BRIDGE_TOOLS,
+            ...combinedTools
+          });
         }
+
+        console.log("[Chat] Combined tools keys:", Object.keys(combinedTools));
+        // Deep log of tool inputSchema to debug Gemini schema issues (AI SDK v6 uses inputSchema)
+        const { asSchema } = await import('@ai-sdk/provider-utils');
+        Object.entries(combinedTools).forEach(([name, t]) => {
+          const toolData = t as any;
+          try {
+            const schema = asSchema(toolData.inputSchema).jsonSchema;
+            console.log(`[Chat] Tool: ${name}, inputSchema:`, JSON.stringify(schema));
+          } catch {
+            console.log(`[Chat] Tool: ${name}, inputSchema: [error extracting schema]`);
+          }
+        });
 
         const result = streamText({
           model: google(model || "gemini-2.0-flash"),
@@ -237,8 +319,9 @@ async function getOrConnectWithAuth(url: string, label: string, authProvider: an
 function wrapToolsWithRetry(tools: Record<string, any>, url: string, label: string, headers?: Record<string, string>): Record<string, any> {
   const wrapped: Record<string, any> = {};
   for (const [name, tool] of Object.entries(tools)) {
+    const safeTool = sanitizeToolSchema(tool);
     wrapped[name] = {
-      ...tool,
+      ...safeTool,
       execute: async (...args: any[]) => {
         try {
           return await withTimeout(tool.execute(...args), TOOL_TIMEOUT_MS, `Tool "${name}"`);
@@ -314,10 +397,18 @@ export async function POST(req: Request) {
     system += `\n\n### SELECTED FIGMA NODE\nURL: ${selectedNode}\nDo NOT call selection tools. This node IS the context. Use it with other tools.`;
   }
   if (useBridge) {
-    system += `\n\n### FIGMA BRIDGE ACTIVE\nYou have access to the live Figma canvas via a bridge. Use figma_* tools for canvas operations. These will be executed by the client.`;
+    system += `\n\n### FIGMA BRIDGE ACTIVE
+The bridge is CONNECTED. Prioritize the bridge-compatible figma_* tools as instructed in the main prompt for all canvas interactions.`;
   }
 
-  const mcpConnectionPromise = connectMCPs(figmaMcpUrl, figmaAccessToken, resolvedCodeProjectPath, figmaOAuth, tunnelSecret, mcpCodeUrlHeader);
+  const mcpConnectionPromise = connectMCPs(
+    useBridge ? undefined : figmaMcpUrl, // Skip Figma MCP if Bridge is active
+    figmaAccessToken,
+    resolvedCodeProjectPath,
+    figmaOAuth,
+    tunnelSecret,
+    mcpCodeUrlHeader
+  );
   const stream = createKeepaliveStream(mcpConnectionPromise, modelMessages, system, model, !!useBridge);
 
   return new Response(stream, {
